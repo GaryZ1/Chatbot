@@ -173,7 +173,9 @@ class Deduplicator:
     of itself.
     """
 
-    def __init__(self, near_threshold: float = 0.9, num_perm: int = 128, shingle_size: int = 5) -> None:
+    def __init__(
+        self, near_threshold: float = 0.9, num_perm: int = 128, shingle_size: int = 5
+    ) -> None:
         self._exact: dict[str, str] = {}
         self._key_hash: dict[str, str] = {}
         self.near = NearDuplicateIndex(

@@ -109,7 +109,10 @@ class QuestionGenerator:
     def make_question_chunk(self, parent: Chunk, question: str, i: int) -> Chunk:
         return Chunk(
             chunk_id=Chunk.make_id(
-                parent.doc_id, parent.doc_version, parent.position, ChunkKind.QUESTION.value,
+                parent.doc_id,
+                parent.doc_version,
+                parent.position,
+                ChunkKind.QUESTION.value,
                 f"{parent.chunk_id}:{i}",
             ),
             doc_id=parent.doc_id,

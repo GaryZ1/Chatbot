@@ -128,7 +128,10 @@ class PropositionChunker(BaseChunker):
                 out.append(
                     Chunk(
                         chunk_id=Chunk.make_id(
-                            doc.doc_id, doc.version, position, ChunkKind.PROPOSITION.value,
+                            doc.doc_id,
+                            doc.version,
+                            position,
+                            ChunkKind.PROPOSITION.value,
                             f"{base.chunk_id}:{i}",
                         ),
                         doc_id=doc.doc_id,

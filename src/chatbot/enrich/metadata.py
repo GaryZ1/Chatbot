@@ -110,9 +110,17 @@ _MONTHS = {
     m: i
     for i, names in enumerate(
         [
-            ("jan", "january"), ("feb", "february"), ("mar", "march"), ("apr", "april"),
-            ("may",), ("jun", "june"), ("jul", "july"), ("aug", "august"),
-            ("sep", "sept", "september"), ("oct", "october"), ("nov", "november"),
+            ("jan", "january"),
+            ("feb", "february"),
+            ("mar", "march"),
+            ("apr", "april"),
+            ("may",),
+            ("jun", "june"),
+            ("jul", "july"),
+            ("aug", "august"),
+            ("sep", "sept", "september"),
+            ("oct", "october"),
+            ("nov", "november"),
             ("dec", "december"),
         ],
         start=1,
@@ -121,12 +129,19 @@ _MONTHS = {
 }
 _MONTH_RE = "|".join(sorted(_MONTHS, key=len, reverse=True))
 _ISO_DATE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
-_MDY = re.compile(rf"\b({_MONTH_RE})\.?\s+(\d{{1,2}})(?:st|nd|rd|th)?,?\s+(\d{{4}})\b", re.IGNORECASE)
-_DMY = re.compile(rf"\b(\d{{1,2}})(?:st|nd|rd|th)?\s+({_MONTH_RE})\.?,?\s+(\d{{4}})\b", re.IGNORECASE)
-_EFFECTIVE = re.compile(
-    r"\b(effective(?:\s+(?:date|from|as of|on))?|valid from|in effect from)\s*[:\-]?\s*", re.IGNORECASE
+_MDY = re.compile(
+    rf"\b({_MONTH_RE})\.?\s+(\d{{1,2}})(?:st|nd|rd|th)?,?\s+(\d{{4}})\b", re.IGNORECASE
 )
-_EXPIRY = re.compile(r"\b(expir(?:es|y|ation)(?:\s+date)?|valid until|until)\s*[:\-]?\s*", re.IGNORECASE)
+_DMY = re.compile(
+    rf"\b(\d{{1,2}})(?:st|nd|rd|th)?\s+({_MONTH_RE})\.?,?\s+(\d{{4}})\b", re.IGNORECASE
+)
+_EFFECTIVE = re.compile(
+    r"\b(effective(?:\s+(?:date|from|as of|on))?|valid from|in effect from)\s*[:\-]?\s*",
+    re.IGNORECASE,
+)
+_EXPIRY = re.compile(
+    r"\b(expir(?:es|y|ation)(?:\s+date)?|valid until|until)\s*[:\-]?\s*", re.IGNORECASE
+)
 _EMAIL = re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")
 _URL = re.compile(r"\bhttps?://[^\s<>\"')\]]+")
 _IDENTIFIER = re.compile(r"\b(?=[A-Z0-9\-]*\d)[A-Z][A-Z0-9]{1,9}(?:-[A-Z0-9]{1,12}){1,3}\b")
@@ -294,7 +309,9 @@ class MetadataEnricher:
                 if entities:
                     c.metadata["entities"] = entities
                 if found.get("identifiers"):
-                    kws = list(dict.fromkeys([*c.metadata.get("keywords", []), *found["identifiers"]]))
+                    kws = list(
+                        dict.fromkeys([*c.metadata.get("keywords", []), *found["identifiers"]])
+                    )
                     c.metadata["keywords"] = kws
             c.metadata["metadata_version"] = self.version
         return chunks

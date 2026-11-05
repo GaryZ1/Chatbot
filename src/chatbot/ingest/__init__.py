@@ -23,8 +23,8 @@ from chatbot.ingest.connectors import (
     write_acl_sidecar,
 )
 from chatbot.ingest.dedupe import (
-    DedupResult,
     Deduplicator,
+    DedupResult,
     DedupStatus,
     MinHasher,
     NearDuplicateIndex,

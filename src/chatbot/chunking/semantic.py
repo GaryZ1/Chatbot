@@ -103,7 +103,12 @@ class SemanticChunker(BaseChunker):
             dists = cosine_distances(np.asarray(vecs))
             threshold = float(np.percentile(dists, self.breakpoint_percentile))
             breaks = {prose[k] for k, d in enumerate(dists) if d > threshold}
-            logger.debug("semantic: %d sentences, threshold %.4f, %d breaks", len(prose), threshold, len(breaks))
+            logger.debug(
+                "semantic: %d sentences, threshold %.4f, %d breaks",
+                len(prose),
+                threshold,
+                len(breaks),
+            )
         splitter = RecursiveSplitter(self.max_tokens, tokenizer=self.tokenizer)
         ranges: list[tuple[int, int]] = []
         cur: tuple[int, int] | None = None
@@ -131,13 +136,18 @@ class SemanticChunker(BaseChunker):
                 ranges.append(cur)
                 cur = None
         if cur is not None:
-            if ranges and self.count(text[cur[0] : cur[1]]) < self.min_tokens and self.count(
-                text[ranges[-1][0] : cur[1]]
-            ) <= self.max_tokens and not index.span_at(ranges[-1][0]).atomic:
+            if (
+                ranges
+                and self.count(text[cur[0] : cur[1]]) < self.min_tokens
+                and self.count(text[ranges[-1][0] : cur[1]]) <= self.max_tokens
+                and not index.span_at(ranges[-1][0]).atomic
+            ):
                 ranges[-1] = (ranges[-1][0], cur[1])
             else:
                 ranges.append(cur)
         return [
-            self.make_chunk(index, position=i, start=s, end=e, metadata={"semantic_breaks": len(breaks)})
+            self.make_chunk(
+                index, position=i, start=s, end=e, metadata={"semantic_breaks": len(breaks)}
+            )
             for i, (s, e) in enumerate(ranges)
         ]

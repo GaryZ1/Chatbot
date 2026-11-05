@@ -71,7 +71,9 @@ def table_row_groups(
     summary = describe_table(span.block)
     if not rows:
         return [
-            Piece(span.start, span.end, span.heading_path, span.page, atomic=True, summaries=[summary])
+            Piece(
+                span.start, span.end, span.heading_path, span.page, atomic=True, summaries=[summary]
+            )
         ]
     groups: list[list[tuple[int, int]]] = []
     cur: list[tuple[int, int]] = []

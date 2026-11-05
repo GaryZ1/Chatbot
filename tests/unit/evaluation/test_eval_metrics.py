@@ -4,8 +4,8 @@ import pytest
 
 from chatbot.core.tokens import RegexTokenizer
 from chatbot.evaluation.metrics import (
-    ClaimSupport,
     CitedStatement,
+    ClaimSupport,
     abstention_report,
     alce_citation_scores,
     average_precision,
@@ -77,7 +77,9 @@ def test_token_iou_chars_and_tokens():
     nored = token_iou([("d", 0, 10), ("d", 0, 10)], [("d", 0, 10)], count_redundant=False)
     assert nored.iou == pytest.approx(1.0)
     text = "alpha beta gamma delta"
-    tok = token_iou([("d", 0, 10)], [("d", 6, 16)], doc_texts={"d": text}, tokenizer=RegexTokenizer())
+    tok = token_iou(
+        [("d", 0, 10)], [("d", 6, 16)], doc_texts={"d": text}, tokenizer=RegexTokenizer()
+    )
     # retrieved tokens: alpha, beta; gold: beta, gamma → IoU 1/3
     assert tok.iou == pytest.approx(1 / 3)
 
@@ -122,7 +124,10 @@ async def test_alce_with_entailment_oracle():
     async def entails(claim: str, passages):
         return any(claim.split()[0] in p for p in passages)
 
-    statements = [CitedStatement(text="refund window", markers=[1, 2]), CitedStatement(text="pto", markers=[1])]
+    statements = [
+        CitedStatement(text="refund window", markers=[1, 2]),
+        CitedStatement(text="pto", markers=[1]),
+    ]
     s = await alce_citation_scores(statements, sources, entails)
     assert s.citation_recall == pytest.approx(0.5)
     assert s.citation_precision == pytest.approx(1 / 3)

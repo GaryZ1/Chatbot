@@ -196,8 +196,10 @@ class LateChunker(BaseChunker):
                 )
             )
             late = False
-        model = self.token_embedder.name if late and self.token_embedder else (
-            self.fallback_embedder.name if self.fallback_embedder else ""
+        model = (
+            self.token_embedder.name
+            if late and self.token_embedder
+            else (self.fallback_embedder.name if self.fallback_embedder else "")
         )
         for c in targets:
             c.metadata["late_chunking"] = late

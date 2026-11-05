@@ -274,7 +274,9 @@ class CitationSupportJudge(Judge):
             verdict = by_idx.get(i)
             cited_ids = [str(m) for m in st.markers]
             if verdict is None or not st.markers:
-                out.append(ClaimSupport(claim=st.text, cited_ids=cited_ids, jointly_supported=False))
+                out.append(
+                    ClaimSupport(claim=st.text, cited_ids=cited_ids, jointly_supported=False)
+                )
                 continue
             supporting = {str(m) for m in verdict.supporting_ids if m in st.markers}
             out.append(

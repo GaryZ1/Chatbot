@@ -12,6 +12,7 @@ glossary from definitions in the corpus ("Paid Time Off (PTO)").
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import re
 from collections.abc import Iterable, Mapping, Sequence
@@ -110,9 +111,7 @@ class Glossary:
                 break
         out: list[tuple[str, list[str]]] = []
         for gi, term in found.items():
-            missing = [
-                t for t in self._groups[gi] if t != term and not _pattern(t).search(text)
-            ]
+            missing = [t for t in self._groups[gi] if t != term and not _pattern(t).search(text)]
             if missing:
                 out.append((term, missing))
         return out
@@ -173,7 +172,8 @@ class GlossaryEnricher:
         self.glossary = glossary
         self.mine = mine
         self.kinds = frozenset(kinds)
-        self.version = version
+        digest = hashlib.sha256(repr(glossary.groups).encode()).hexdigest()[:8]
+        self.version = f"{version}-{digest}{'-mined' if mine else ''}"
 
     async def apply(self, doc: Document, chunks: list[Chunk]) -> list[Chunk]:
         if self.mine:

@@ -44,7 +44,9 @@ def test_split_is_frozen_and_deterministic():
 
 
 def test_stratified_sample():
-    gs = GoldenSet([*(_ex(i, "lookup") for i in range(80)), *(_ex(i, "procedure") for i in range(80, 100))])
+    gs = GoldenSet(
+        [*(_ex(i, "lookup") for i in range(80)), *(_ex(i, "procedure") for i in range(80, 100))]
+    )
     s = gs.stratified_sample(10, by="intent", seed=3)
     assert len(s) == 10
     intents = [e.intent for e in s]
@@ -56,7 +58,9 @@ def test_validate_flags_label_problems():
     gs = GoldenSet(
         [
             _ex(1),
-            GoldenExample(id="u1", question="question 1?", should_abstain=True, gold_doc_ids=["file:a.md"]),
+            GoldenExample(
+                id="u1", question="question 1?", should_abstain=True, gold_doc_ids=["file:a.md"]
+            ),
             GoldenExample(id="n1", question="no gold?"),
         ]
     )
@@ -97,5 +101,10 @@ def test_sample_dataset_files_are_valid():
     assert len(gs) >= 15
     assert not [i for i in gs.validate() if i.severity == "error"]
     docs = {d for e in gs for d in e.gold_doc_ids}
-    assert docs <= {"file:refund-policy.md", "file:pto-policy.md", "file:security-policy.md", "file:expense-policy.md"}
+    assert docs <= {
+        "file:refund-policy.md",
+        "file:pto-policy.md",
+        "file:security-policy.md",
+        "file:expense-policy.md",
+    }
     assert all(e.should_abstain for e in GoldenSet.load(DATA / "unanswerable.jsonl"))

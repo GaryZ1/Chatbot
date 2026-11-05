@@ -117,11 +117,15 @@ class RaptorBuilder:
         self.seed = seed
         self.tokenizer = tokenizer or default_tokenizer()
 
-    async def _summarise(self, title: str, members: Sequence[Chunk], sem: asyncio.Semaphore) -> str | None:
+    async def _summarise(
+        self, title: str, members: Sequence[Chunk], sem: asyncio.Semaphore
+    ) -> str | None:
         passages = "\n\n".join(f"<passage>\n{m.text}\n</passage>" for m in members)
         passages = truncate_to_tokens(passages, self.max_input_tokens, self.tokenizer)
         req = LLMRequest.simple(
-            RAPTOR_USER.format(title=title or "(untitled)", passages=passages, max_words=self.max_summary_words),
+            RAPTOR_USER.format(
+                title=title or "(untitled)", passages=passages, max_words=self.max_summary_words
+            ),
             system=RAPTOR_SYSTEM,
             tier=self.tier,
             max_tokens=1024,
@@ -154,7 +158,10 @@ class RaptorBuilder:
             else:
                 vecs = await self.embedder.embed_documents([n.text for n in nodes])
                 labels = kmeans(np.asarray(vecs), k, seed=self.seed + level)
-            clusters = [[nodes[i] for i in np.flatnonzero(labels == j)] for j in range(int(labels.max()) + 1)]
+            clusters = [
+                [nodes[i] for i in np.flatnonzero(labels == j)]
+                for j in range(int(np.max(labels)) + 1)
+            ]
             clusters = [c for c in clusters if c]
             texts = await asyncio.gather(*(self._summarise(ref.title, c, sem) for c in clusters))
             level_nodes: list[Chunk] = []
@@ -166,7 +173,10 @@ class RaptorBuilder:
                 child_ids = [m.chunk_id for m in members]
                 chunk = Chunk(
                     chunk_id=Chunk.make_id(
-                        ref.doc_id, ref.doc_version, position, ChunkKind.SUMMARY.value,
+                        ref.doc_id,
+                        ref.doc_version,
+                        position,
+                        ChunkKind.SUMMARY.value,
                         f"raptor:{level}:{','.join(child_ids)}",
                     ),
                     doc_id=ref.doc_id,
@@ -183,7 +193,9 @@ class RaptorBuilder:
                     acl=ref.acl.model_copy(deep=True),
                     source_uri=ref.source_uri,
                     metadata={
-                        **{k: v for k, v in ref.metadata.items() if k not in ("atomic", "oversize")},
+                        **{
+                            k: v for k, v in ref.metadata.items() if k not in ("atomic", "oversize")
+                        },
                         "chunker": "raptor",
                         "raptor_level": level,
                         "children_ids": child_ids,

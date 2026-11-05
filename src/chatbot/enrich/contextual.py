@@ -47,7 +47,9 @@ Please give a short succinct context to situate this chunk within the overall do
 for the purposes of improving search retrieval of the chunk. Answer only with the \
 succinct context and nothing else."""
 
-_WINDOW_NOTE = "[Excerpt {k} of {n} of the document titled {title!r}; the full document is longer.]\n"
+_WINDOW_NOTE = (
+    "[Excerpt {k} of {n} of the document titled {title!r}; the full document is longer.]\n"
+)
 _PREFIX = re.compile(r"^\s*(?:context|situating context)\s*:\s*", re.IGNORECASE)
 
 
@@ -115,7 +117,8 @@ class ContextualEnricher:
         n = len(ranges)
         title = doc.title or doc.doc_id
         texts = [
-            _WINDOW_NOTE.format(k=k + 1, n=n, title=title) + text[s:e] for k, (s, e) in enumerate(ranges)
+            _WINDOW_NOTE.format(k=k + 1, n=n, title=title) + text[s:e]
+            for k, (s, e) in enumerate(ranges)
         ]
         return texts, ranges
 

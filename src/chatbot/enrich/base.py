@@ -51,7 +51,9 @@ class BreadcrumbStep:
     name = "breadcrumb"
     version = "1"
 
-    def __init__(self, kinds: Sequence[ChunkKind] = (ChunkKind.CHUNK,), *, overwrite: bool = False) -> None:
+    def __init__(
+        self, kinds: Sequence[ChunkKind] = (ChunkKind.CHUNK,), *, overwrite: bool = False
+    ) -> None:
         self.kinds = frozenset(kinds)
         self.overwrite = overwrite
 

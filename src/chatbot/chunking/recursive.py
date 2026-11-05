@@ -103,7 +103,10 @@ class RecursiveSplitter:
                 out.append((window[0][0], window[-1][1]))
                 if self.overlap_tokens > 0:
                     window = window[1:]
-                    while window and self._count(text, window[0][0], window[-1][1]) > self.overlap_tokens:
+                    while (
+                        window
+                        and self._count(text, window[0][0], window[-1][1]) > self.overlap_tokens
+                    ):
                         window = window[1:]
                     while window and self._count(text, window[0][0], atom[1]) > self.max_tokens:
                         window = window[1:]

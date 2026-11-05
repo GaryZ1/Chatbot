@@ -192,12 +192,18 @@ class ChunkSummarizer:
                     c.model_copy(
                         update={
                             "chunk_id": Chunk.make_id(
-                                c.doc_id, c.doc_version, c.position, ChunkKind.SUMMARY.value, c.chunk_id
+                                c.doc_id,
+                                c.doc_version,
+                                c.position,
+                                ChunkKind.SUMMARY.value,
+                                c.chunk_id,
                             ),
                             "kind": ChunkKind.SUMMARY,
                             "parent_id": c.chunk_id,
                             "text": summary,
-                            "embed_text": "\n\n".join(p for p in (chunk_breadcrumb(c), summary) if p),
+                            "embed_text": "\n\n".join(
+                                p for p in (chunk_breadcrumb(c), summary) if p
+                            ),
                             "token_count": self.tokenizer.count(summary),
                             "metadata": {
                                 **c.metadata,

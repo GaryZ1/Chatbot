@@ -47,7 +47,9 @@ def test_cohen_kappa_known_values():
 
 
 def test_judge_calibration():
-    cal = JudgeCalibration.compute([True, True, False, False, None], [True, False, False, False, True])
+    cal = JudgeCalibration.compute(
+        [True, True, False, False, None], [True, False, False, False, True]
+    )
     assert cal.n == 4
     assert cal.accuracy == pytest.approx(0.75)
     assert cal.kappa == pytest.approx(0.5)

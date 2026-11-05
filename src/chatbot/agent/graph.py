@@ -133,7 +133,7 @@ _STOP = frozenset(
     ]
 )
 _PHRASE_RE = re.compile(
-    r"\b(?:[A-Z][\w&'-]*|[A-Z]{2,}\d*)(?:\s+(?:of|and|for|&|de|la)?\s*(?:[A-Z][\w&'-]*|[A-Z]{2,}\d*))*"
+    r"\b(?:[A-Z][\w&'-]*|[A-Z]{2,}\d*)(?:\s+(?:of|for|&|de|la)?\s*(?:[A-Z][\w&'-]*|[A-Z]{2,}\d*))*"
 )
 _ID_RE = re.compile(r"\b[A-Z]{2,}[-_]?\d+[A-Z0-9-]*\b|\b[A-Za-z]+-\d{2,}\b")
 _WORD_RE = re.compile(r"[a-z0-9]+")

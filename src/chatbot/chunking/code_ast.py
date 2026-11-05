@@ -30,10 +30,23 @@ from chatbot.core.types import BlockType, Chunk, Document
 logger = logging.getLogger(__name__)
 
 _EXT_LANG = {
-    ".py": "python", ".js": "javascript", ".jsx": "javascript", ".ts": "typescript",
-    ".tsx": "typescript", ".go": "go", ".rs": "rust", ".java": "java", ".kt": "kotlin",
-    ".c": "c", ".h": "c", ".cpp": "cpp", ".cs": "csharp", ".rb": "ruby", ".php": "php",
-    ".swift": "swift", ".scala": "scala",
+    ".py": "python",
+    ".js": "javascript",
+    ".jsx": "javascript",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".go": "go",
+    ".rs": "rust",
+    ".java": "java",
+    ".kt": "kotlin",
+    ".c": "c",
+    ".h": "c",
+    ".cpp": "cpp",
+    ".cs": "csharp",
+    ".rb": "ruby",
+    ".php": "php",
+    ".swift": "swift",
+    ".scala": "scala",
 }
 
 _DEF_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
@@ -142,7 +155,9 @@ def regex_definitions(source: str) -> tuple[list[CodeUnit], list[str]]:
             m = pat.match(ln)
             if m:
                 begin = i
-                while begin > 0 and lines[begin - 1].strip() and _COMMENT_LINE.match(lines[begin - 1]):
+                while (
+                    begin > 0 and lines[begin - 1].strip() and _COMMENT_LINE.match(lines[begin - 1])
+                ):
                     begin -= 1
                 starts.append((begin, m.group("name")))
                 break
@@ -239,27 +254,40 @@ class CodeChunker(BaseChunker):
         flat: list[CodeUnit] = []
         for u in units:
             s, e = span_of(u)
-            if u.symbol_type == "class" and u.children and self.count(source[s:e]) > self.max_tokens:
+            if (
+                u.symbol_type == "class"
+                and u.children
+                and self.count(source[s:e]) > self.max_tokens
+            ):
                 first = u.children[0].start_line
                 if first > u.start_line:
                     flat.append(CodeUnit(u.start_line, first - 1, u.symbol, "class_header"))
                 for k, m in enumerate(u.children):
-                    end_line = u.children[k + 1].start_line - 1 if k + 1 < len(u.children) else u.end_line
+                    end_line = (
+                        u.children[k + 1].start_line - 1 if k + 1 < len(u.children) else u.end_line
+                    )
                     flat.append(
-                        CodeUnit(m.start_line, end_line, m.symbol, "method", m.parent_symbol, m.header)
+                        CodeUnit(
+                            m.start_line, end_line, m.symbol, "method", m.parent_symbol, m.header
+                        )
                     )
             else:
                 flat.append(u)
 
         imports_text = "\n".join(imports[: self.max_import_lines])
-        splitter = RecursiveSplitter(self.max_tokens, separators=("\n\n", "\n", ""), tokenizer=self.tokenizer)
+        splitter = RecursiveSplitter(
+            self.max_tokens, separators=("\n\n", "\n", ""), tokenizer=self.tokenizer
+        )
         chunks: list[Chunk] = []
         for u in flat:
             s, e = span_of(u)
             if s >= e:
                 continue
             ranges = [(s, e)]
-            if u.symbol_type in ("module", "definition", "class_header") and self.count(source[s:e]) > self.max_tokens:
+            if (
+                u.symbol_type in ("module", "definition", "class_header")
+                and self.count(source[s:e]) > self.max_tokens
+            ):
                 ranges = splitter.split(source, s, e)
             for rs, re_ in ranges:
                 body = source[rs:re_]
@@ -302,4 +330,3 @@ class CodeChunker(BaseChunker):
 def detect_code_language(path: str) -> str | None:
     """Language from a file extension (helper shared with parsers)."""
     return _EXT_LANG.get(PurePosixPath(path).suffix.lower())
-

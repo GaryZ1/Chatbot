@@ -19,9 +19,56 @@ from chatbot.core.types import Chunk, Document
 Segmenter = Callable[[str, int, int], list[tuple[int, int]]]
 
 ABBREVIATIONS: frozenset[str] = frozenset(
-    "mr mrs ms dr prof sr jr st vs etc e.g i.e cf al fig figs no nos vol pp approx inc ltd "
-    "co corp dept est jan feb mar apr jun jul aug sep sept oct nov dec mt ave u.s u.k "
-    "z.b bzw usw ca resp".split()
+    [
+        "mr",
+        "mrs",
+        "ms",
+        "dr",
+        "prof",
+        "sr",
+        "jr",
+        "st",
+        "vs",
+        "etc",
+        "e.g",
+        "i.e",
+        "cf",
+        "al",
+        "fig",
+        "figs",
+        "no",
+        "nos",
+        "vol",
+        "pp",
+        "approx",
+        "inc",
+        "ltd",
+        "co",
+        "corp",
+        "dept",
+        "est",
+        "jan",
+        "feb",
+        "mar",
+        "apr",
+        "jun",
+        "jul",
+        "aug",
+        "sep",
+        "sept",
+        "oct",
+        "nov",
+        "dec",
+        "mt",
+        "ave",
+        "u.s",
+        "u.k",
+        "z.b",
+        "bzw",
+        "usw",
+        "ca",
+        "resp",
+    ]
 )
 _BOUNDARY = re.compile(r"[.!?…。！？]+['\"’”)\]]*(?=\s)|\n")
 
@@ -108,7 +155,11 @@ class SentenceChunker(BaseChunker):
                     break
                 j += 1
             s, e = sents[i][0], sents[j - 1][1]
-            if j - i == 1 and self.count(text[s:e]) > self.max_tokens and not self._is_atomic(index, s):
+            if (
+                j - i == 1
+                and self.count(text[s:e]) > self.max_tokens
+                and not self._is_atomic(index, s)
+            ):
                 groups.extend(splitter.split(text, s, e))
             else:
                 groups.append((s, e))
@@ -170,9 +221,10 @@ class ParagraphChunker(BaseChunker):
             if s >= e:
                 continue
             if cur is not None:
-                if self.count(text[cur[0] : cur[1]]) < self.min_tokens and self.count(
-                    text[cur[0] : e]
-                ) <= self.max_tokens:
+                if (
+                    self.count(text[cur[0] : cur[1]]) < self.min_tokens
+                    and self.count(text[cur[0] : e]) <= self.max_tokens
+                ):
                     cur = (cur[0], e)
                     continue
                 ranges.append(cur)
@@ -255,13 +307,13 @@ class PageChunker(BaseChunker):
             else:
                 pages.append((page, span.start, span.end))
         splitter = (
-            RecursiveSplitter(self.max_tokens, tokenizer=self.tokenizer) if self.max_tokens else None
+            RecursiveSplitter(self.max_tokens, tokenizer=self.tokenizer)
+            if self.max_tokens
+            else None
         )
         out: list[Chunk] = []
         for page, s, e in pages:
             ranges = splitter.split(index.text, s, e) if splitter else [trim_span(index.text, s, e)]
             for rs, re_ in ranges:
-                out.append(
-                    self.make_chunk(index, position=len(out), start=rs, end=re_, page=page)
-                )
+                out.append(self.make_chunk(index, position=len(out), start=rs, end=re_, page=page))
         return out

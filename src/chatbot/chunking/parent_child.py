@@ -43,7 +43,9 @@ class ParentChildChunker(BaseChunker):
             raise ValueError("parent_max_tokens must be >= child_max_tokens")
         self.child_max_tokens = child_max_tokens
         self.parent_max_tokens = parent_max_tokens
-        cmin = min(min_tokens, child_max_tokens // 4) if child_min_tokens is None else child_min_tokens
+        cmin = (
+            min(min_tokens, child_max_tokens // 4) if child_min_tokens is None else child_min_tokens
+        )
         self._parents = StructureChunker(
             parent_max_tokens,
             min(min_tokens, parent_max_tokens - 1),

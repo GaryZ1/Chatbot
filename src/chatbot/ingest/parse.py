@@ -110,7 +110,8 @@ def table_rows_to_html(rows: Sequence[Sequence[str]]) -> str:
         return "<table></table>"
     head = "".join(f"<th>{html.escape(c.strip())}</th>" for c in rows[0])
     body = "".join(
-        "<tr>" + "".join(f"<td>{html.escape(c.strip())}</td>" for c in r) + "</tr>" for r in rows[1:]
+        "<tr>" + "".join(f"<td>{html.escape(c.strip())}</td>" for c in r) + "</tr>"
+        for r in rows[1:]
     )
     return f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
 
@@ -204,7 +205,9 @@ _LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d{1,3}[.)])\s+")
 _IMAGE_LINE = re.compile(r"^\s*!\[([^\]]*)\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)\s*$")
 
 
-def parse_markdown_blocks(text: str, *, page: int | None = None) -> tuple[list[Block], dict[str, Any]]:
+def parse_markdown_blocks(
+    text: str, *, page: int | None = None
+) -> tuple[list[Block], dict[str, Any]]:
     """Parse Markdown into typed blocks. Returns ``(blocks, front_matter)``."""
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     front: dict[str, Any] = {}
@@ -244,7 +247,9 @@ def parse_markdown_blocks(text: str, *, page: int | None = None) -> tuple[list[B
                 body.append(lines[i])
                 i += 1
             i += 1  # closing fence (or EOF)
-            blocks.append(Block(type=BlockType.CODE, text="\n".join(body), language=lang, page=page))
+            blocks.append(
+                Block(type=BlockType.CODE, text="\n".join(body), language=lang, page=page)
+            )
             continue
         atx = _ATX.match(line)
         if atx:
@@ -314,8 +319,8 @@ def parse_markdown_blocks(text: str, *, page: int | None = None) -> tuple[list[B
 
 class MarkdownParser:
     name = "markdown"
-    mimes = ("text/markdown", "text/x-markdown")
-    extensions = (".md", ".markdown", ".mdx")
+    mimes: tuple[str, ...] = ("text/markdown", "text/x-markdown")
+    extensions: tuple[str, ...] = (".md", ".markdown", ".mdx")
 
     def parse(self, record: SourceRecord) -> Document:
         blocks, front = parse_markdown_blocks(record.as_text())
@@ -334,13 +339,41 @@ class MarkdownParser:
 # --------------------------------------------------------------------------- html
 
 _SKIP_TAGS = frozenset(
-    {"script", "style", "nav", "footer", "aside", "noscript", "template", "iframe", "svg",
-     "form", "button", "select", "head"}
+    {
+        "script",
+        "style",
+        "nav",
+        "footer",
+        "aside",
+        "noscript",
+        "template",
+        "iframe",
+        "svg",
+        "form",
+        "button",
+        "select",
+        "head",
+    }
 )
 _SKIP_ROLES = frozenset({"navigation", "banner", "contentinfo", "search", "complementary"})
 _BLOCK_TAGS = frozenset(
-    {"p", "div", "section", "article", "main", "header", "blockquote", "dd", "dt", "br", "hr",
-     "figcaption", "address", "body", "html"}
+    {
+        "p",
+        "div",
+        "section",
+        "article",
+        "main",
+        "header",
+        "blockquote",
+        "dd",
+        "dt",
+        "br",
+        "hr",
+        "figcaption",
+        "address",
+        "body",
+        "html",
+    }
 )
 _VOID = frozenset({"br", "hr", "img", "meta", "link", "input", "source", "wbr", "area", "col"})
 
@@ -391,7 +424,11 @@ class _DOMWalker(_StdHTMLParser):
             if tag not in _VOID:
                 self._skip_depth += 1
             return
-        if tag in _SKIP_TAGS or a.get("role", "").lower() in _SKIP_ROLES or a.get("aria-hidden") == "true":
+        if (
+            tag in _SKIP_TAGS
+            or a.get("role", "").lower() in _SKIP_ROLES
+            or a.get("aria-hidden") == "true"
+        ):
             if tag == "head":
                 # still collect <title> from the head
                 self._stack.append(tag)
@@ -553,8 +590,8 @@ def parse_html_blocks(markup: str) -> tuple[list[Block], str]:
 
 class HTMLParser:
     name = "html"
-    mimes = ("text/html", "application/xhtml+xml")
-    extensions = (".html", ".htm", ".xhtml")
+    mimes: tuple[str, ...] = ("text/html", "application/xhtml+xml")
+    extensions: tuple[str, ...] = (".html", ".htm", ".xhtml")
 
     def parse(self, record: SourceRecord) -> Document:
         blocks, title = parse_html_blocks(record.as_text())
@@ -567,13 +604,15 @@ class HTMLParser:
 
 class PlainTextParser:
     name = "text"
-    mimes = ("text/plain", "text/x-rst", "text/csv")
-    extensions = (".txt", ".text", ".log", ".rst")
+    mimes: tuple[str, ...] = ("text/plain", "text/x-rst", "text/csv")
+    extensions: tuple[str, ...] = (".txt", ".text", ".log", ".rst")
 
     def parse(self, record: SourceRecord) -> Document:
         text = record.as_text().replace("\r\n", "\n")
         blocks = [
-            Block(type=BlockType.LIST if _LIST_ITEM.match(p) else BlockType.PARAGRAPH, text=p.strip())
+            Block(
+                type=BlockType.LIST if _LIST_ITEM.match(p) else BlockType.PARAGRAPH, text=p.strip()
+            )
             for p in re.split(r"\n\s*\n", text)
             if p.strip()
         ]
@@ -585,17 +624,21 @@ class EmailParser:
     when the registry parses with ``email=True`` (automatic for this parser)."""
 
     name = "email"
-    mimes = ("message/rfc822",)
-    extensions = (".eml",)
+    mimes: tuple[str, ...] = ("message/rfc822",)
+    extensions: tuple[str, ...] = (".eml",)
 
     def parse(self, record: SourceRecord) -> Document:
         msg = email.message_from_bytes(record.as_bytes(), policy=email.policy.default)
-        body_part = msg.get_body(preferencelist=("plain", "html"))  # type: ignore[attr-defined]
+        body_part = msg.get_body(preferencelist=("plain", "html"))
         body = body_part.get_content() if body_part is not None else ""
         if body_part is not None and body_part.get_content_type() == "text/html":
             blocks, _ = parse_html_blocks(body)
         else:
-            blocks = [Block(type=BlockType.PARAGRAPH, text=p.strip()) for p in re.split(r"\n\s*\n", body) if p.strip()]
+            blocks = [
+                Block(type=BlockType.PARAGRAPH, text=p.strip())
+                for p in re.split(r"\n\s*\n", body)
+                if p.strip()
+            ]
         subject = str(msg.get("subject", "") or "")
         meta = {
             "email_from": str(msg.get("from", "") or ""),
@@ -604,16 +647,34 @@ class EmailParser:
             "message_id": str(msg.get("message-id", "") or ""),
             "in_reply_to": str(msg.get("in-reply-to", "") or ""),
         }
-        doc = _base_document(record, blocks, self.name, title=subject, metadata=meta, doc_type="email")
+        doc = _base_document(
+            record, blocks, self.name, title=subject, metadata=meta, doc_type="email"
+        )
         doc.author = doc.author or meta["email_from"] or None
         return doc
 
 
 _CODE_LANG = {
-    ".py": "python", ".js": "javascript", ".jsx": "javascript", ".ts": "typescript",
-    ".tsx": "typescript", ".go": "go", ".rs": "rust", ".java": "java", ".kt": "kotlin",
-    ".c": "c", ".h": "c", ".cpp": "cpp", ".hpp": "cpp", ".cs": "csharp", ".rb": "ruby",
-    ".php": "php", ".swift": "swift", ".scala": "scala", ".sh": "bash", ".sql": "sql",
+    ".py": "python",
+    ".js": "javascript",
+    ".jsx": "javascript",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".go": "go",
+    ".rs": "rust",
+    ".java": "java",
+    ".kt": "kotlin",
+    ".c": "c",
+    ".h": "c",
+    ".cpp": "cpp",
+    ".hpp": "cpp",
+    ".cs": "csharp",
+    ".rb": "ruby",
+    ".php": "php",
+    ".swift": "swift",
+    ".scala": "scala",
+    ".sh": "bash",
+    ".sql": "sql",
 }
 
 
@@ -621,8 +682,15 @@ class CodeParser:
     """Source files become one ``CODE`` block; :mod:`chatbot.chunking.code_ast` splits them."""
 
     name = "code"
-    mimes = ("text/x-python", "text/javascript", "text/x-typescript", "text/x-go", "text/x-rust", "text/x-java")
-    extensions = tuple(_CODE_LANG)
+    mimes: tuple[str, ...] = (
+        "text/x-python",
+        "text/javascript",
+        "text/x-typescript",
+        "text/x-go",
+        "text/x-rust",
+        "text/x-java",
+    )
+    extensions: tuple[str, ...] = tuple(_CODE_LANG)
 
     def parse(self, record: SourceRecord) -> Document:
         lang = _CODE_LANG.get(record.extension)
@@ -646,8 +714,8 @@ class PDFParser:
     """
 
     name = "pypdf"
-    mimes = ("application/pdf",)
-    extensions = (".pdf",)
+    mimes: tuple[str, ...] = ("application/pdf",)
+    extensions: tuple[str, ...] = (".pdf",)
 
     def parse(self, record: SourceRecord) -> Document:
         try:
@@ -693,12 +761,12 @@ class DoclingParser:
     """
 
     name = "docling"
-    mimes = (
+    mimes: tuple[str, ...] = (
         "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     )
-    extensions = (".pdf", ".docx", ".pptx")
+    extensions: tuple[str, ...] = (".pdf", ".docx", ".pptx")
 
     def __init__(self) -> None:
         self._converter: Any = None
@@ -774,7 +842,9 @@ class ParserRegistry:
         doc.parse_quality = score_parse_quality(
             doc,
             raw_size=len(record.content) if record.content is not None else None,
-            pages=doc.metadata.get("page_count") if isinstance(doc.metadata.get("page_count"), int) else None,
+            pages=doc.metadata.get("page_count")
+            if isinstance(doc.metadata.get("page_count"), int)
+            else None,
         ).model_copy(update={"parser": doc.parse_quality.parser})
         if needs_fallback(doc):
             logger.info(
@@ -795,7 +865,14 @@ class ParserRegistry:
 def default_registry(*, use_docling: bool = False) -> ParserRegistry:
     """Registry with every built-in parser; ``use_docling`` prefers Docling for PDF/Office."""
     reg = ParserRegistry(
-        [PlainTextParser(), MarkdownParser(), HTMLParser(), EmailParser(), CodeParser(), PDFParser()]
+        [
+            PlainTextParser(),
+            MarkdownParser(),
+            HTMLParser(),
+            EmailParser(),
+            CodeParser(),
+            PDFParser(),
+        ]
     )
     if use_docling:
         reg.register(DoclingParser())
