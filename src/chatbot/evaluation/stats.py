@@ -100,7 +100,9 @@ def paired_bootstrap(
         raise ValueError("paired samples must have equal length")
     n = len(b)
     if n == 0:
-        return PairedDiff(baseline_mean=0, candidate_mean=0, delta=0, low=0, high=0, p_value=1.0, n=0)
+        return PairedDiff(
+            baseline_mean=0, candidate_mean=0, delta=0, low=0, high=0, p_value=1.0, n=0
+        )
     d = c - b
     delta = float(d.mean())
     if n == 1 or np.allclose(d, d[0]):
@@ -135,7 +137,9 @@ class HolmResult(BaseModel):
     reject: dict[str, bool]
 
 
-def holm_correction(p_values: Mapping[str, float] | Sequence[float], alpha: float = 0.05) -> HolmResult:
+def holm_correction(
+    p_values: Mapping[str, float] | Sequence[float], alpha: float = 0.05
+) -> HolmResult:
     """Holm-Bonferroni step-down. Adjusted p-values are monotone and capped at 1."""
     items = (
         list(p_values.items())

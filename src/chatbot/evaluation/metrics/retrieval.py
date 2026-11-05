@@ -42,7 +42,9 @@ def _check_k(k: int) -> None:
         raise ValueError("k must be positive")
 
 
-def recall_at_k(ranked: Sequence[str], relevant: Iterable[str] | Mapping[str, int], k: int) -> float:
+def recall_at_k(
+    ranked: Sequence[str], relevant: Iterable[str] | Mapping[str, int], k: int
+) -> float:
     """``|relevant ∩ top_k| / |relevant|``; 0.0 when there is nothing relevant."""
     _check_k(k)
     rel = _rel_set(relevant)
@@ -51,7 +53,9 @@ def recall_at_k(ranked: Sequence[str], relevant: Iterable[str] | Mapping[str, in
     return len(rel.intersection(dedupe(ranked)[:k])) / len(rel)
 
 
-def precision_at_k(ranked: Sequence[str], relevant: Iterable[str] | Mapping[str, int], k: int) -> float:
+def precision_at_k(
+    ranked: Sequence[str], relevant: Iterable[str] | Mapping[str, int], k: int
+) -> float:
     """``|relevant ∩ top_k| / k`` (standard definition: denominator is k, not len(top_k))."""
     _check_k(k)
     rel = _rel_set(relevant)
@@ -64,7 +68,9 @@ def hit_at_k(ranked: Sequence[str], relevant: Iterable[str] | Mapping[str, int],
     return 1.0 if rel.intersection(dedupe(ranked)[:k]) else 0.0
 
 
-def reciprocal_rank(ranked: Sequence[str], relevant: Iterable[str] | Mapping[str, int], k: int | None = None) -> float:
+def reciprocal_rank(
+    ranked: Sequence[str], relevant: Iterable[str] | Mapping[str, int], k: int | None = None
+) -> float:
     """``1 / rank`` of the first relevant id (0 if none within ``k``). MRR = mean over queries."""
     rel = _rel_set(relevant)
     items = dedupe(ranked)
@@ -77,15 +83,21 @@ def reciprocal_rank(ranked: Sequence[str], relevant: Iterable[str] | Mapping[str
     return 0.0
 
 
-def mrr(rankings: Sequence[Sequence[str]], relevants: Sequence[Iterable[str] | Mapping[str, int]]) -> float:
+def mrr(
+    rankings: Sequence[Sequence[str]], relevants: Sequence[Iterable[str] | Mapping[str, int]]
+) -> float:
     if len(rankings) != len(relevants):
         raise ValueError("rankings and relevants must have equal length")
     if not rankings:
         return 0.0
-    return sum(reciprocal_rank(r, g) for r, g in zip(rankings, relevants, strict=True)) / len(rankings)
+    return sum(reciprocal_rank(r, g) for r, g in zip(rankings, relevants, strict=True)) / len(
+        rankings
+    )
 
 
-def average_precision(ranked: Sequence[str], relevant: Iterable[str] | Mapping[str, int], k: int | None = None) -> float:
+def average_precision(
+    ranked: Sequence[str], relevant: Iterable[str] | Mapping[str, int], k: int | None = None
+) -> float:
     rel = _rel_set(relevant)
     if not rel:
         return 0.0
@@ -116,7 +128,9 @@ def ndcg_at_k(
 ) -> float:
     """Normalised DCG with graded relevance (a plain id set means binary grade 1)."""
     _check_k(k)
-    grades: Mapping[str, int] = relevance if isinstance(relevance, Mapping) else dict.fromkeys(relevance, 1)
+    grades: Mapping[str, int] = (
+        relevance if isinstance(relevance, Mapping) else dict.fromkeys(relevance, 1)
+    )
     ideal = sorted((g for g in grades.values() if g > 0), reverse=True)
     if not ideal:
         return 0.0
@@ -132,7 +146,9 @@ def retrieval_metrics(
     prefix: str = "",
 ) -> dict[str, float]:
     """All standard metrics at each ``k`` as a flat dict (``recall@5`` ...)."""
-    grades: Mapping[str, int] = relevance if isinstance(relevance, Mapping) else dict.fromkeys(relevance, 1)
+    grades: Mapping[str, int] = (
+        relevance if isinstance(relevance, Mapping) else dict.fromkeys(relevance, 1)
+    )
     out: dict[str, float] = {}
     for k in ks:
         out[f"{prefix}recall@{k}"] = recall_at_k(ranked, grades, k)
@@ -175,7 +191,9 @@ def _token_ids(
             if doc_id not in token_cache:
                 token_cache[doc_id] = tokenizer.spans(doc_texts[doc_id])
             units = {
-                (doc_id, i) for i, (ts, te) in enumerate(token_cache[doc_id]) if ts < end and te > start
+                (doc_id, i)
+                for i, (ts, te) in enumerate(token_cache[doc_id])
+                if ts < end and te > start
             }
         else:
             units = {(doc_id, i) for i in range(start, end)}
@@ -198,7 +216,9 @@ def token_iou(
     in ``|t_r|``, penalising overlap that wastes context budget.
     """
     cache: dict[str, list[tuple[int, int]]] = {}
-    gold_units = set().union(*_token_ids(gold_spans, doc_texts, tokenizer, cache)) if gold_spans else set()
+    gold_units = (
+        set().union(*_token_ids(gold_spans, doc_texts, tokenizer, cache)) if gold_spans else set()
+    )
     ret_lists = _token_ids(retrieved_spans, doc_texts, tokenizer, cache)
     ret_union: set[tuple[str, int]] = set().union(*ret_lists) if ret_lists else set()
     n_ret = sum(len(s) for s in ret_lists) if count_redundant else len(ret_union)

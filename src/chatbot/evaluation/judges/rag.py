@@ -155,14 +155,18 @@ class FaithfulnessJudge(Judge):
             return None
         return [c.strip() for c in res.claims if c.strip()]
 
-    async def judge(self, question: str, answer: str, contexts: Sequence[str]) -> FaithfulnessResult | None:
+    async def judge(
+        self, question: str, answer: str, contexts: Sequence[str]
+    ) -> FaithfulnessResult | None:
         claims = await self.claims(question, answer)
         if claims is None:
             return None
         if not claims:
             return FaithfulnessResult(score=None, claims=[])
         if not contexts:
-            verdicts = [ClaimVerdict(claim=c, reasoning="no context", verdict="unsupported") for c in claims]
+            verdicts = [
+                ClaimVerdict(claim=c, reasoning="no context", verdict="unsupported") for c in claims
+            ]
             return FaithfulnessResult(score=0.0, claims=verdicts)
         listing = "\n".join(f"{i}. {c}" for i, c in enumerate(claims, start=1))
         user = "\n\n".join(
@@ -176,7 +180,9 @@ class FaithfulnessJudge(Judge):
             return None
         verdicts = list(res.verdicts)
         if len(verdicts) != len(claims):
-            logger.warning("faithfulness judge returned %d verdicts for %d claims", len(verdicts), len(claims))
+            logger.warning(
+                "faithfulness judge returned %d verdicts for %d claims", len(verdicts), len(claims)
+            )
             # Missing verdicts are conservatively treated as unsupported.
             verdicts = verdicts[: len(claims)]
             verdicts += [
@@ -210,7 +216,9 @@ class ContextJudge(Judge):
         """Share of passages relevant to the question (context precision)."""
         if not contexts:
             return None
-        user = "\n\n".join([xml_block("question", question), xml_block("passages", numbered_contexts(contexts))])
+        user = "\n\n".join(
+            [xml_block("question", question), xml_block("passages", numbered_contexts(contexts))]
+        )
         res = await self._parse(CONTEXT_RELEVANCE_SYSTEM, user, PassageRelevanceList)
         if res is None:
             return None
@@ -254,7 +262,9 @@ class CitationSupportJudge(Judge):
             lines.append(f"{i}. {st.text} (cites: {cited})")
         used = sorted({m for st in statements for m in st.markers if m in sources})
         passages = "\n".join(xml_block("passage", sources[m], id=m) for m in used)
-        user = "\n\n".join([xml_block("passages", passages), xml_block("statements", "\n".join(lines))])
+        user = "\n\n".join(
+            [xml_block("passages", passages), xml_block("statements", "\n".join(lines))]
+        )
         res = await self._parse(CITATION_SYSTEM, user, StatementSupportList)
         if res is None:
             return None

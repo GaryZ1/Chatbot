@@ -197,7 +197,9 @@ def citation_scores(claims: Sequence[ClaimSupport]) -> CitationScores:
     the remaining citations individually supports ``s``".
     """
     if not claims:
-        return CitationScores(citation_recall=0.0, citation_precision=0.0, n_statements=0, n_citations=0)
+        return CitationScores(
+            citation_recall=0.0, citation_precision=0.0, n_statements=0, n_citations=0
+        )
     recall_hits = 0
     precise = 0
     n_cit = 0
@@ -237,7 +239,9 @@ async def alce_citation_scores(
     """Exact ALCE scoring with an entailment oracle ``entails(claim, passages)``
     (an NLI model or an LLM judge). Markers not in ``sources`` count as unsupported."""
     if not statements:
-        return CitationScores(citation_recall=0.0, citation_precision=0.0, n_statements=0, n_citations=0)
+        return CitationScores(
+            citation_recall=0.0, citation_precision=0.0, n_statements=0, n_citations=0
+        )
     recall_hits = 0
     precise = 0
     n_cit = 0

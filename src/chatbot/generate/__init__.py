@@ -1,0 +1,75 @@
+"""Generation & context engineering (docs/10-generation-context.md)."""
+
+from chatbot.generate.answer import (
+    AnswerGenerator,
+    StreamEvent,
+    detect_abstention,
+    detect_partial,
+)
+from chatbot.generate.citations import (
+    CitationMarker,
+    CitationResult,
+    CitationVerifier,
+    Claim,
+    ClaimCheck,
+    LexicalSupportJudge,
+    LLMSupportJudge,
+    SupportJudge,
+    VerificationReport,
+    extract_citations,
+    make_citation,
+    parse_markers,
+    split_claims,
+    strip_dangling,
+)
+from chatbot.generate.compress import ExtractiveCompressor
+from chatbot.generate.context_builder import (
+    ContextBuilder,
+    ContextPack,
+    OrderStrategy,
+    render_source,
+    source_attributes,
+)
+from chatbot.generate.prompts import (
+    ABSTAIN_PHRASE,
+    DEFAULT_SYSTEM_PROMPT,
+    PARTIAL_HEADING,
+    PROMPT_VERSION,
+    PromptConfig,
+    build_system_prompt,
+    render_user_message,
+)
+
+__all__ = [
+    "ABSTAIN_PHRASE",
+    "DEFAULT_SYSTEM_PROMPT",
+    "PARTIAL_HEADING",
+    "PROMPT_VERSION",
+    "AnswerGenerator",
+    "CitationMarker",
+    "CitationResult",
+    "CitationVerifier",
+    "Claim",
+    "ClaimCheck",
+    "ContextBuilder",
+    "ContextPack",
+    "ExtractiveCompressor",
+    "LLMSupportJudge",
+    "LexicalSupportJudge",
+    "OrderStrategy",
+    "PromptConfig",
+    "StreamEvent",
+    "SupportJudge",
+    "VerificationReport",
+    "build_system_prompt",
+    "detect_abstention",
+    "detect_partial",
+    "extract_citations",
+    "make_citation",
+    "parse_markers",
+    "render_source",
+    "render_user_message",
+    "source_attributes",
+    "split_claims",
+    "strip_dangling",
+]

@@ -75,5 +75,7 @@ class Judge:
                 logger.warning("judge %s failed: %s", type(self).__name__, exc)
                 return None
 
-    async def map(self, fn: Callable[[R], Awaitable[S | None]], items: Sequence[R]) -> list[S | None]:
+    async def map(
+        self, fn: Callable[[R], Awaitable[S | None]], items: Sequence[R]
+    ) -> list[S | None]:
         return list(await asyncio.gather(*(fn(i) for i in items)))

@@ -32,4 +32,5 @@ __all__ = [
     "RelevanceVerdict",
     "cohen_kappa",
     "win_rate",
+    "xml_block",
 ]

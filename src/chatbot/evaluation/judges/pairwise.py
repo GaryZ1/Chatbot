@@ -55,7 +55,9 @@ class PairwiseJudge(Judge):
         digest = hashlib.sha256(f"{self.seed}|{item_id}".encode()).digest()
         return random.Random(int.from_bytes(digest[:8], "big")).random() < 0.5
 
-    async def _ask(self, question: str, first: str, second: str, reference: str | None) -> PairwiseVerdict | None:
+    async def _ask(
+        self, question: str, first: str, second: str, reference: str | None
+    ) -> PairwiseVerdict | None:
         parts = [xml_block("question", question)]
         if reference:
             parts.append(xml_block("reference", reference))
@@ -87,11 +89,15 @@ class PairwiseJudge(Judge):
             return PairwiseResult(winner=w1, a_first=a_first, reasoning=v1.reasoning)
         v2 = await self._ask(question, second, first, reference)
         if v2 is None:
-            return PairwiseResult(winner=w1, a_first=a_first, reasoning=v1.reasoning, consistent=False)
+            return PairwiseResult(
+                winner=w1, a_first=a_first, reasoning=v1.reasoning, consistent=False
+            )
         w2 = self._map(v2, not a_first)
         if w1 == w2:
             return PairwiseResult(winner=w1, a_first=a_first, reasoning=v1.reasoning)
-        return PairwiseResult(winner="tie", a_first=a_first, reasoning=v1.reasoning, consistent=False)
+        return PairwiseResult(
+            winner="tie", a_first=a_first, reasoning=v1.reasoning, consistent=False
+        )
 
 
 def win_rate(results: list[PairwiseResult | None]) -> dict[str, float]:
@@ -103,4 +109,10 @@ def win_rate(results: list[PairwiseResult | None]) -> dict[str, float]:
     b = sum(r.winner == "b" for r in valid)
     a = sum(r.winner == "a" for r in valid)
     t = n - a - b
-    return {"b_win": b / n, "a_win": a / n, "tie": t / n, "b_score": (b + 0.5 * t) / n, "n": float(n)}
+    return {
+        "b_win": b / n,
+        "a_win": a / n,
+        "tie": t / n,
+        "b_score": (b + 0.5 * t) / n,
+        "n": float(n),
+    }

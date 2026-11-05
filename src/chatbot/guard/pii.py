@@ -212,7 +212,7 @@ _PATTERNS: tuple[_Pattern, ...] = (
         PIIType.SECRET,
         re.compile(
             r"(?i)\b(?:api[_-]?key|secret(?:[_-]?key)?|access[_-]?token|auth[_-]?token|"
-            r"token|password|passwd|pwd)\b[\"']?\s*[:=]\s*[\"']?([^\s\"',;]{8,})"
+            r"token|password|passwd|pwd)\b[\"']?\s*[:=]\s*[\"']?([^\s\"',;]{7,}[^\s\"',;.])"
         ),
         group=1,
         score=0.8,

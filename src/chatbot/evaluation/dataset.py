@@ -143,7 +143,9 @@ def _norm_question(q: str) -> str:
     return re.sub(r"[^\w]+", " ", q.lower()).strip()
 
 
-def split_of(example_id: str, test_fraction: float = DEFAULT_TEST_FRACTION, salt: str = DEFAULT_SPLIT_SALT) -> Split:
+def split_of(
+    example_id: str, test_fraction: float = DEFAULT_TEST_FRACTION, salt: str = DEFAULT_SPLIT_SALT
+) -> Split:
     """Deterministic frozen split assignment from the id hash alone."""
     if not 0.0 <= test_fraction <= 1.0:
         raise ValueError("test_fraction must be in [0, 1]")
@@ -190,7 +192,9 @@ class GoldenSet:
         self._ids.add(example.id)
         self._examples.append(example)
 
-    def filter(self, predicate: Callable[[GoldenExample], bool], name: str | None = None) -> GoldenSet:
+    def filter(
+        self, predicate: Callable[[GoldenExample], bool], name: str | None = None
+    ) -> GoldenSet:
         return GoldenSet((e for e in self._examples if predicate(e)), name=name or self.name)
 
     def merge(self, other: GoldenSet, name: str | None = None) -> GoldenSet:
@@ -243,11 +247,15 @@ class GoldenSet:
     # ------------------------------------------------------------------ splits
 
     def split(
-        self, which: Split | str, test_fraction: float = DEFAULT_TEST_FRACTION, salt: str = DEFAULT_SPLIT_SALT
+        self,
+        which: Split | str,
+        test_fraction: float = DEFAULT_TEST_FRACTION,
+        salt: str = DEFAULT_SPLIT_SALT,
     ) -> GoldenSet:
         target = Split(which)
         return self.filter(
-            lambda e: split_of(e.id, test_fraction, salt) is target, name=f"{self.name}:{target.value}"
+            lambda e: split_of(e.id, test_fraction, salt) is target,
+            name=f"{self.name}:{target.value}",
         )
 
     def dev(self, **kw: Any) -> GoldenSet:
@@ -371,7 +379,9 @@ class GoldenSet:
                 )
             if len(set(ex.gold_doc_ids)) != len(ex.gold_doc_ids):
                 issues.append(
-                    LabelIssue(severity="warning", example_id=ex.id, message="duplicate gold_doc_ids")
+                    LabelIssue(
+                        severity="warning", example_id=ex.id, message="duplicate gold_doc_ids"
+                    )
                 )
             if corpus_doc_ids is not None:
                 missing = [d for d in ex.gold_doc_ids if d not in corpus_doc_ids]
@@ -383,7 +393,11 @@ class GoldenSet:
                             message=f"gold docs not in corpus: {missing}",
                         )
                     )
-            if ex.history and ex.history[-1].role.value == "user" and ex.history[-1].content == ex.question:
+            if (
+                ex.history
+                and ex.history[-1].role.value == "user"
+                and ex.history[-1].content == ex.question
+            ):
                 issues.append(
                     LabelIssue(
                         severity="warning",
@@ -412,4 +426,6 @@ def _stratum_key(by: Callable[[GoldenExample], str] | str) -> Callable[[GoldenEx
         return lambda e: e.slices[0] if e.slices else "untagged"
     if by not in GoldenExample.model_fields:
         raise ValueError(f"unknown stratification field {by!r}")
-    return lambda e: str(getattr(e, by).value if isinstance(getattr(e, by), StrEnum) else getattr(e, by))
+    return lambda e: str(
+        getattr(e, by).value if isinstance(getattr(e, by), StrEnum) else getattr(e, by)
+    )

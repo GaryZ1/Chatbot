@@ -105,14 +105,20 @@ def _r(name: str, pattern: str, weight: float, category: str) -> InjectionRule:
     return InjectionRule(name, re.compile(pattern), weight, category)
 
 
-_INSTR = r"(?:instructions?|prompts?|rules?|directions?|guidelines?|directives?|messages?|context|commands?|guardrails?|polic(?:y|ies))"
+_INSTR = r"(?:instructions?|prompts?|rules?|directions?|guidelines?|directives?|commands?|guardrails?|programming|training)\b"
 
 #: Rules for user messages (evaluated on normalised, lower-cased text).
 DEFAULT_RULES: tuple[InjectionRule, ...] = (
     _r(
         "ignore_previous",
-        rf"\b(?:ignore|disregard|forget|override|skip|bypass|discard|drop)\b[^.\n]{{0,30}}?\b(?:all|any|every|previous|prior|above|earlier|preceding|original|system|your|the|these|those)\b[^.\n]{{0,25}}?\b{_INSTR}",
+        rf"\b(?:ignore|disregard|forget|override|bypass|discard)\b[^.,;:!?\n]{{0,30}}?\b(?:all|any|every|previous|prior|above|earlier|preceding|original|system|your|these|those)\b[^.,;:!?\n]{{0,25}}?\b{_INSTR}",
         0.75,
+        "override",
+    ),
+    _r(
+        "ignore_previous_soft",
+        r"\b(?:ignore|disregard|forget|skip|drop)\b[^.,;:!?\n]{0,20}?\b(?:all|every|previous|prior|above|earlier|preceding)\b[^.,;:!?\n]{0,15}?\b(?:messages|context|conversation|text)\b",
+        0.3,
         "override",
     ),
     _r("new_instructions", r"\b(?:new|updated|real|actual|true)\s+(?:system\s+)?instructions?\s*[:\-]", 0.5, "override"),
@@ -121,12 +127,18 @@ DEFAULT_RULES: tuple[InjectionRule, ...] = (
     _r("no_restrictions", r"\bwithout (?:any )?(?:restrictions|limitations|limits|filters|censorship|guidelines|rules|ethics)\b", 0.35, "jailbreak"),
     _r(
         "system_prompt_exfil",
-        r"\b(?:reveal|show|print|repeat|output|display|leak|dump|give me|tell me|share|recite|disclose|what (?:is|are|was|were))\b[^.\n]{0,30}?\b(?:your|the|initial|hidden|original|secret)\s+(?:system\s+)?(?:prompt|instructions|rules|guidelines|configuration)\b",
+        r"\b(?:reveal|show|print|repeat|output|display|leak|dump|give me|tell me|share|recite|disclose|what (?:is|are|was|were))\b[^.\n]{0,30}?\byour\s+(?:system\s+|initial\s+|hidden\s+|original\s+|secret\s+)?(?:prompt|instructions|rules|guidelines|configuration)\b",
+        0.6,
+        "exfil_system_prompt",
+    ),
+    _r(
+        "system_prompt_dump",
+        r"\b(?:reveal|print|repeat|output|display|leak|dump|recite|disclose)\b[^.\n]{0,30}?\b(?:the\s+)?(?:system|initial|hidden|original|secret)\s+(?:prompt|instructions)\b",
         0.45,
         "exfil_system_prompt",
     ),
     _r("repeat_above", r"\b(?:repeat|print|output|copy)\b[^.\n]{0,25}\b(?:everything|all|the (?:text|words))\b[^.\n]{0,20}\b(?:above|before this|so far)\b", 0.5, "exfil_system_prompt"),
-    _r("verbatim_prompt", r"\b(?:verbatim|word for word)\b[^.\n]{0,40}\b(?:prompt|instructions)\b", 0.35, "exfil_system_prompt"),
+    _r("verbatim_prompt", r"\b(?:verbatim|word for word)\b[^.\n]{0,40}\b(?:prompt|instructions)\b|\b(?:prompt|instructions)\b[^.\n]{0,20}\b(?:verbatim|word for word)\b", 0.35, "exfil_system_prompt"),
     _r("dan", r"\b(?:dan mode|do anything now|act as dan|you are (?:now )?dan|stan mode|dude mode)\b", 0.8, "jailbreak"),
     _r("developer_mode", r"\b(?:developer|god|debug|admin|sudo|jailbreak|unrestricted|unfiltered)\s+mode\b", 0.55, "jailbreak"),
     _r("jailbreak_word", r"\bjail ?break(?:ing|ed)?\b", 0.35, "jailbreak"),
