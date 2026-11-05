@@ -12,7 +12,9 @@ P = Principal(user_id="u", groups=frozenset({"staff"}))
 
 
 def c(cid: str, text: str, title: str = "", acl: ACL | None = None) -> Chunk:
-    return Chunk(chunk_id=cid, doc_id=cid.split("-")[0], text=text, title=title, acl=acl or ACL(public=True))
+    return Chunk(
+        chunk_id=cid, doc_id=cid.split("-")[0], text=text, title=title, acl=acl or ACL(public=True)
+    )
 
 
 CORPUS = [
@@ -68,6 +70,8 @@ async def test_bm25_persistence(tmp_path: Path) -> None:
     assert loaded.k1 == 1.5 and loaded.vocabulary_size == idx.vocabulary_size
     a = await idx.search("annual refund", 5, P)
     b = await loaded.search("annual refund", 5, P)
-    assert [(h.chunk.chunk_id, round(h.score, 9)) for h in a] == [(h.chunk.chunk_id, round(h.score, 9)) for h in b]
+    assert [(h.chunk.chunk_id, round(h.score, 9)) for h in a] == [
+        (h.chunk.chunk_id, round(h.score, 9)) for h in b
+    ]
     with pytest.raises(ValueError):
         BM25Index.load(tmp_path, analyzer=Analyzer(stem=False))

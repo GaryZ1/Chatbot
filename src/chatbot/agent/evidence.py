@@ -58,7 +58,9 @@ class EvidenceStore:
         return list(self._chunks)
 
     def render(self, numbers: Iterable[int], max_chars: int = DEFAULT_MAX_CHARS) -> str:
-        return "\n".join(format_evidence(n, c, max_chars) for n in numbers if (c := self.get(n)) is not None)
+        return "\n".join(
+            format_evidence(n, c, max_chars) for n in numbers if (c := self.get(n)) is not None
+        )
 
 
 def format_evidence(n: int, chunk: Chunk, max_chars: int = DEFAULT_MAX_CHARS) -> str:
@@ -83,7 +85,9 @@ def extract_markers(text: str) -> list[int]:
     )
 
 
-def build_citations(text: str, store: EvidenceStore, snippet_chars: int = 300) -> tuple[str, list[Citation]]:
+def build_citations(
+    text: str, store: EvidenceStore, snippet_chars: int = 300
+) -> tuple[str, list[Citation]]:
     """Map ``[n]`` markers to :class:`Citation` objects; markers that do not refer to
     gathered evidence are removed from the text (never cite what was not seen)."""
     valid: dict[int, Citation] = {}
@@ -110,7 +114,9 @@ def build_citations(text: str, store: EvidenceStore, snippet_chars: int = 300) -
             keep = [n for n in re.split(r"\s*,\s*", m.group(1)) if int(n) not in invalid]
             return f"[{', '.join(keep)}]" if keep else ""
 
-        text = re.sub(r"\s?" + _MARKER_RE.pattern, lambda m: (" " + _fix(m)) if _fix(m) else "", text)
+        text = re.sub(
+            r"\s?" + _MARKER_RE.pattern, lambda m: (" " + _fix(m)) if _fix(m) else "", text
+        )
     return text, [valid[n] for n in sorted(valid)]
 
 

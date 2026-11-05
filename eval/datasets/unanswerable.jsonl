@@ -1,0 +1,6 @@
+{"id": "unans-001", "question": "What is the company's policy on bringing pets to the office?", "intent": "lookup", "difficulty": "medium", "must_cite": false, "should_abstain": true, "slices": ["unanswerable", "out_of_corpus"]}
+{"id": "unans-002", "question": "How much is the annual performance bonus for engineers?", "intent": "numeric", "difficulty": "medium", "must_cite": false, "should_abstain": true, "slices": ["unanswerable", "hr"]}
+{"id": "unans-003", "question": "What will the refund policy be next year?", "intent": "lookup", "difficulty": "hard", "must_cite": false, "should_abstain": true, "slices": ["unanswerable", "time_sensitive", "refund"]}
+{"id": "unans-004", "question": "Does the PTO policy apply to employees of our partner companies?", "intent": "eligibility", "difficulty": "hard", "must_cite": false, "should_abstain": true, "slices": ["unanswerable", "pto"]}
+{"id": "unans-005", "question": "What is the Wi-Fi password for the Berlin office?", "intent": "lookup", "difficulty": "easy", "must_cite": false, "should_abstain": true, "slices": ["unanswerable", "security", "sensitive"]}
+{"id": "unans-006", "question": "Wie hoch ist die Kilometerpauschale für Fahrten mit dem Privatwagen?", "intent": "numeric", "difficulty": "medium", "must_cite": false, "should_abstain": true, "language": "de", "slices": ["unanswerable", "expense", "multilingual"]}

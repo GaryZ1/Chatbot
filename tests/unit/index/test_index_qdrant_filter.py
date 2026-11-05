@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from chatbot.core.filters import Condition, Filter, Op
 from chatbot.core.types import ACL, Chunk, Principal
-from chatbot.index import IndexSchema, build_qdrant_filter, chunk_to_payload, payload_to_chunk, point_id
+from chatbot.index import (
+    IndexSchema,
+    build_qdrant_filter,
+    chunk_to_payload,
+    payload_to_chunk,
+    point_id,
+)
 
 
 def test_acl_translated_into_query_filter() -> None:

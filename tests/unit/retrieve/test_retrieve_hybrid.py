@@ -25,10 +25,26 @@ from chatbot.retrieve import (
 )
 
 CONCEPTS = {
-    "refund": 0, "money": 0, "reimburse": 0, "reimbursement": 0, "refunds": 0,
-    "login": 1, "sign": 1, "sso": 1, "password": 1, "authentication": 1,
-    "calendar": 2, "sync": 2, "schedule": 2, "error": 3, "fails": 3, "failure": 3, "broken": 3,
-    "invoice": 4, "billing": 4, "bill": 4,
+    "refund": 0,
+    "money": 0,
+    "reimburse": 0,
+    "reimbursement": 0,
+    "refunds": 0,
+    "login": 1,
+    "sign": 1,
+    "sso": 1,
+    "password": 1,
+    "authentication": 1,
+    "calendar": 2,
+    "sync": 2,
+    "schedule": 2,
+    "error": 3,
+    "fails": 3,
+    "failure": 3,
+    "broken": 3,
+    "invoice": 4,
+    "billing": 4,
+    "bill": 4,
 }
 
 
@@ -63,7 +79,9 @@ def mk(cid: str, text: str, acl: ACL = PUBLIC, **kw: object) -> Chunk:
     return Chunk(chunk_id=cid, doc_id=kw.pop("doc_id", cid), text=text, acl=acl, **kw)  # type: ignore[arg-type]
 
 
-async def build(extra: Sequence[Chunk] = ()) -> tuple[DenseRetriever, SparseRetriever, InMemoryVectorStore]:
+async def build(
+    extra: Sequence[Chunk] = (),
+) -> tuple[DenseRetriever, SparseRetriever, InMemoryVectorStore]:
     emb = ConceptEmbedder()
     store = InMemoryVectorStore(dim=emb.dim)
     bm25 = BM25Index()
@@ -92,7 +110,11 @@ async def recall_at_1(retriever: object) -> float:
 async def test_hybrid_beats_single_legs() -> None:
     dense, sparse, _ = await build()
     hybrid = HybridRetriever([dense, sparse], leg_k=10)
-    r_dense, r_sparse, r_hybrid = await recall_at_1(dense), await recall_at_1(sparse), await recall_at_1(hybrid)
+    r_dense, r_sparse, r_hybrid = (
+        await recall_at_1(dense),
+        await recall_at_1(sparse),
+        await recall_at_1(hybrid),
+    )
     assert r_hybrid == 1.0
     assert r_hybrid > r_dense and r_hybrid > r_sparse
     cfg = FusionConfig(method=FusionMethod.CONVEX, weights={"dense": 0.5, "bm25": 0.5})
@@ -101,17 +123,21 @@ async def test_hybrid_beats_single_legs() -> None:
 
 
 async def test_hybrid_same_acl_and_filter_on_all_legs() -> None:
-    secret = mk("secret", "ERR-4012 calendar sync error internal postmortem", ACL(allow_groups=["sre"]))
+    secret = mk(
+        "secret", "ERR-4012 calendar sync error internal postmortem", ACL(allow_groups=["sre"])
+    )
     dense, sparse, _ = await build([secret])
     hybrid = HybridRetriever([dense, sparse])
     hits = await hybrid.retrieve("ERR-4012 calendar sync error", 3, P)
     assert len(hits) == 3 and "secret" not in {h.chunk.chunk_id for h in hits}
     flt = Filter.eq(doc_id="err5000")
-    assert {h.chunk.chunk_id for h in await hybrid.retrieve("calendar error", 5, P, flt)} == {"err5000"}
+    assert {h.chunk.chunk_id for h in await hybrid.retrieve("calendar error", 5, P, flt)} == {
+        "err5000"
+    }
 
 
 async def test_failed_leg_degrades_gracefully() -> None:
-    dense, sparse, _ = await build()
+    _, sparse, _ = await build()
 
     class Broken:
         name = "broken"
@@ -151,7 +177,9 @@ async def test_mmr_diversity() -> None:
     ]
     picked = await MMRSelector(emb, lambda_=0.5).select("refund policy", cands, 2)
     assert [p.chunk.chunk_id for p in picked] == ["a", "c"]
-    relevance_only = await MMRSelector(emb, lambda_=1.0).select("refund policy for annual plans", cands, 2)
+    relevance_only = await MMRSelector(emb, lambda_=1.0).select(
+        "refund policy for annual plans", cands, 2
+    )
     assert {p.chunk.chunk_id for p in relevance_only} == {"a", "b"}
 
 
@@ -167,7 +195,11 @@ async def test_neighbour_parent_expansion_and_boosts() -> None:
     parents = await resolve_parents([hit, ScoredChunk(chunk=kids[1], score=0.5)], store, P)
     assert [h.chunk.chunk_id for h in parents] == ["p"] and parents[0].score == 1.0
 
-    new = ScoredChunk(chunk=mk("n", "x", metadata={"updated_at": "2026-11-01T00:00:00+00:00"}), score=0.50)
-    old = ScoredChunk(chunk=mk("o", "x", metadata={"updated_at": "2020-01-01T00:00:00+00:00"}), score=0.52)
+    new = ScoredChunk(
+        chunk=mk("n", "x", metadata={"updated_at": "2026-11-01T00:00:00+00:00"}), score=0.50
+    )
+    old = ScoredChunk(
+        chunk=mk("o", "x", metadata={"updated_at": "2020-01-01T00:00:00+00:00"}), score=0.52
+    )
     boosted = apply_boosts([old, new], freshness_weight=0.1)
     assert boosted[0].chunk.chunk_id == "n" and "boosted" in boosted[0].stage_scores

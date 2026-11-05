@@ -169,7 +169,9 @@ class CorrectiveRAG:
             async with sem:
                 try:
                     res = await self.llm.parse(
-                        LLMRequest.simple(user, system=GRADE_SYSTEM, tier=self.config.tier, max_tokens=1000),
+                        LLMRequest.simple(
+                            user, system=GRADE_SYSTEM, tier=self.config.tier, max_tokens=1000
+                        ),
                         DocGrade,
                     )
                     return res.grade
@@ -181,10 +183,14 @@ class CorrectiveRAG:
 
     async def rewrite_query(self, question: str, previous: Sequence[str]) -> str | None:
         prev = "\n".join(f"- {q}" for q in previous)
-        user = f"<question>\n{question}\n</question>\n<previous_queries>\n{prev}\n</previous_queries>"
+        user = (
+            f"<question>\n{question}\n</question>\n<previous_queries>\n{prev}\n</previous_queries>"
+        )
         try:
             res = await self.llm.parse(
-                LLMRequest.simple(user, system=REWRITE_SYSTEM, tier=self.config.tier, max_tokens=1000),
+                LLMRequest.simple(
+                    user, system=REWRITE_SYSTEM, tier=self.config.tier, max_tokens=1000
+                ),
                 QueryRewrite,
             )
         except LLMError as exc:
@@ -195,12 +201,16 @@ class CorrectiveRAG:
             return None
         return q
 
-    async def check_grounded(self, answer: str, chunks: Sequence[ScoredChunk]) -> GroundednessVerdict | None:
+    async def check_grounded(
+        self, answer: str, chunks: Sequence[ScoredChunk]
+    ) -> GroundednessVerdict | None:
         passages = "\n".join(_passage(c, self.config.max_passage_chars) for c in chunks)
         user = f"<passages>\n{passages}\n</passages>\n\n<answer>\n{answer}\n</answer>"
         try:
             return await self.llm.parse(
-                LLMRequest.simple(user, system=GROUNDED_SYSTEM, tier=self.config.tier, max_tokens=2000),
+                LLMRequest.simple(
+                    user, system=GROUNDED_SYSTEM, tier=self.config.tier, max_tokens=2000
+                ),
                 GroundednessVerdict,
             )
         except LLMError as exc:
@@ -209,7 +219,9 @@ class CorrectiveRAG:
 
     # ------------------------------------------------------------------ state machine
 
-    async def run(self, question: str, principal: Principal | None, flt: Filter | None = None) -> CRAGResult:
+    async def run(
+        self, question: str, principal: Principal | None, flt: Filter | None = None
+    ) -> CRAGResult:
         """Run the corrective loop. ``principal`` is passed to every retriever call so
         ACL pre-filtering applies (``None`` only for trusted offline jobs)."""
         cfg = self.config
@@ -240,14 +252,19 @@ class CorrectiveRAG:
             if state is State.RETRIEVE:
                 current = await self.retriever.retrieve(query, cfg.k, principal, flt)
                 retrieval_calls += 1
-                trace.append(CRAGTraceEvent(state=state, detail=f"{query!r} → {len(current)} chunks"))
+                trace.append(
+                    CRAGTraceEvent(state=state, detail=f"{query!r} → {len(current)} chunks")
+                )
                 state = State.GRADE
             elif state is State.FALLBACK:
-                assert self.fallback is not None
                 fallback_used = True
-                current = await self.fallback.retrieve(question, cfg.k, principal, flt)
-                retrieval_calls += 1
-                trace.append(CRAGTraceEvent(state=state, detail=f"{self.fallback.name} → {len(current)} chunks"))
+                current = []
+                if self.fallback is not None:
+                    current = await self.fallback.retrieve(question, cfg.k, principal, flt)
+                    retrieval_calls += 1
+                trace.append(
+                    CRAGTraceEvent(state=state, detail=f"fallback → {len(current)} chunks")
+                )
                 state = State.GRADE
             elif state is State.GRADE:
                 new = [c for c in current if c.chunk.chunk_id not in grades]
@@ -260,9 +277,13 @@ class CorrectiveRAG:
                 for c in current:
                     pool.setdefault(c.chunk.chunk_id, c)
                 correct = [c for c in pool.values() if grades.get(c.chunk.chunk_id) == "correct"]
-                ambiguous = [c for c in pool.values() if grades.get(c.chunk.chunk_id) == "ambiguous"]
+                ambiguous = [
+                    c for c in pool.values() if grades.get(c.chunk.chunk_id) == "ambiguous"
+                ]
                 trace.append(
-                    CRAGTraceEvent(state=state, detail=f"correct={len(correct)} ambiguous={len(ambiguous)}")
+                    CRAGTraceEvent(
+                        state=state, detail=f"correct={len(correct)} ambiguous={len(ambiguous)}"
+                    )
                 )
                 can_rewrite = rewrites < cfg.max_rewrites
                 can_fallback = self.fallback is not None and not fallback_used

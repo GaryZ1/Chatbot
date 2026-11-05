@@ -48,7 +48,7 @@ def smart_truncate(
     """Fit ``rerank_text(chunk)`` into ``max_tokens``: heading + best query window.
 
     The window is the contiguous token span of the body with the most query-term
-    matches (ties → earliest), so long chunks are not judged on their first 512
+    matches (centred within the first run of equally good windows), so long chunks are not judged on their first 512
     tokens only.
     """
     if max_tokens <= 0:
@@ -72,12 +72,17 @@ def smart_truncate(
     else:
         qterms = set(an.analyze(query))
         hits = [1 if qterms.intersection(an.analyze(body[s:e])) else 0 for s, e in spans]
-        cur = sum(hits[:budget])
-        best_start, best = 0, cur
+        counts = [sum(hits[:budget])]
         for start in range(1, len(spans) - budget + 1):
-            cur += hits[start + budget - 1] - hits[start - 1]
-            if cur > best:
-                best, best_start = cur, start
+            counts.append(counts[-1] + hits[start + budget - 1] - hits[start - 1])
+        best = max(counts)
+        # Centre the window on the first run of best-scoring starts, so the matching
+        # passage gets context on both sides rather than sitting at the window edge.
+        first = counts.index(best)
+        last = first
+        while last + 1 < len(counts) and counts[last + 1] == best:
+            last += 1
+        best_start = (first + last) // 2
         s0 = spans[best_start][0]
         e0 = spans[best_start + budget - 1][1]
         window = body[s0:e0]

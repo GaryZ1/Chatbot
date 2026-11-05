@@ -187,7 +187,12 @@ def light_stem(token: str) -> str:
             if suffix == "es" and not stem.endswith(("s", "x", "z", "ch", "sh")):
                 # "files" → "file", not "fil": drop only the "s".
                 stem = token[:-1]
-            if suffix in {"ing", "ed"} and len(stem) >= 2 and stem[-1] == stem[-2] and stem[-1] not in "lsz":
+            if (
+                suffix in {"ing", "ed"}
+                and len(stem) >= 2
+                and stem[-1] == stem[-2]
+                and stem[-1] not in "lsz"
+            ):
                 stem = stem[:-1]  # "running" → "run"
             return stem
     return token

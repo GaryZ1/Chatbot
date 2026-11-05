@@ -34,7 +34,9 @@ def test_int8_roundtrip_and_recall(data: tuple[np.ndarray, np.ndarray]) -> None:
     assert codes.dtype == np.int8 and codes.nbytes == x.nbytes // 4
     err = np.abs(quant.dequantize(codes) - x).mean()
     assert err < 0.01
-    np.testing.assert_allclose(quant.scores(qs[0], codes), quant.dequantize(codes) @ qs[0], rtol=1e-3, atol=1e-3)
+    np.testing.assert_allclose(
+        quant.scores(qs[0], codes), quant.dequantize(codes) @ qs[0], rtol=1e-3, atol=1e-3
+    )
     idx = Int8RescoreIndex(x, rescore_top=50, quantizer=quant)
     recalls = [recall_at_k(idx.search(q, 10)[0], top_k_exact(q, x, 10)) for q in qs]
     assert np.mean(recalls) >= 0.98

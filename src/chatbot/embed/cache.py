@@ -102,12 +102,9 @@ class CachingEmbedder:
         self.cache = cache if cache is not None else QueryEmbeddingCache()
         self.casefold = casefold
         self.name = inner.name
+        self.dim = inner.dim
         self._model_key = _model_key(inner)
         self._inflight: dict[str, asyncio.Future[np.ndarray]] = {}
-
-    @property
-    def dim(self) -> int:
-        return self.inner.dim
 
     @property
     def info(self) -> object:

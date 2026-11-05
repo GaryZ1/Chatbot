@@ -134,7 +134,7 @@ class BaseEmbedder(abc.ABC):
                 known[0],
             )
         self.name = name
-        self._dim = dim
+        self.dim = dim
         self.version = version
         self.query_prefix = query_prefix
         self.document_prefix = document_prefix
@@ -143,10 +143,6 @@ class BaseEmbedder(abc.ABC):
         self.max_chars = max_chars
 
     # -- identity ------------------------------------------------------------------
-    @property
-    def dim(self) -> int:
-        return self._dim
-
     @property
     def info(self) -> EmbeddingInfo:
         return EmbeddingInfo(

@@ -43,7 +43,16 @@ from chatbot.agent.tools import (
 from chatbot.core.filters import Filter
 from chatbot.core.interfaces import DocStore, Retriever
 from chatbot.core.types import Answer, AnswerStatus, Chunk, Principal, Role, Turn
-from chatbot.llm.base import LLM, LLMError, LLMMessage, LLMRequest, LLMResponse, Tier, ToolCall, Usage
+from chatbot.llm.base import (
+    LLM,
+    LLMError,
+    LLMMessage,
+    LLMRequest,
+    LLMResponse,
+    Tier,
+    ToolCall,
+    Usage,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +71,7 @@ Answer rules:
 
 FINALIZE_NOTE = (
     "Budget reached: do not call any more tools. Answer now using only the evidence gathered so far, "
-    "with [n] citations, or start with \"I don't know\" if it is insufficient."
+    'with [n] citations, or start with "I don\'t know" if it is insufficient.'
 )
 REPEAT_NOTE = (
     "You already made this exact call and its results are above. Use a different query or arguments, "
@@ -186,9 +195,12 @@ class AgenticRAG:
         )
         specs = self.registry.specs_for(principal)
         messages: list[LLMMessage] = [
-            LLMMessage(role="user" if t.role == Role.USER else "assistant", content=t.content) for t in history
+            LLMMessage(role="user" if t.role == Role.USER else "assistant", content=t.content)
+            for t in history
         ]
-        messages.append(LLMMessage(role="user", content=f"<question>\n{question.strip()}\n</question>"))
+        messages.append(
+            LLMMessage(role="user", content=f"<question>\n{question.strip()}\n</question>")
+        )
 
         usage = Usage()
         steps: list[AgentStep] = []
@@ -232,7 +244,9 @@ class AgenticRAG:
                 stop = StopReason.LLM_ERROR
                 break
             usage = usage + resp.usage
-            log = AgentStep(step=step, stop_reason=resp.stop_reason, text=resp.text, usage=resp.usage)
+            log = AgentStep(
+                step=step, stop_reason=resp.stop_reason, text=resp.text, usage=resp.usage
+            )
             steps.append(log)
             messages.append(LLMMessage(role="assistant", content=_assistant_content(resp)))
 
@@ -261,10 +275,19 @@ class AgenticRAG:
                 if seen[sig] >= b.max_identical_calls:
                     loop_hits += 1
                     results[i] = ToolResult(
-                        tool_use_id=call.id, name=call.name, content=f"Error: {REPEAT_NOTE}", is_error=True
+                        tool_use_id=call.id,
+                        name=call.name,
+                        content=f"Error: {REPEAT_NOTE}",
+                        is_error=True,
                     )
                     log.tool_calls.append(
-                        ToolCallLog(name=call.name, input=call.input, is_error=True, duration_ms=0.0, repeated=True)
+                        ToolCallLog(
+                            name=call.name,
+                            input=call.input,
+                            is_error=True,
+                            duration_ms=0.0,
+                            repeated=True,
+                        )
                     )
                     continue
                 if n_tool_calls >= b.max_tool_calls:
@@ -315,7 +338,17 @@ class AgenticRAG:
                 final_text, extra = await self._finalize(call_llm, messages, steps)
                 usage = usage + extra
         latency_ms = (time.perf_counter() - t_start) * 1000
-        return self._result(final_text, status, stop or StopReason.ANSWERED, ctx, steps, usage, n_tool_calls, loop_hits, latency_ms)
+        return self._result(
+            final_text,
+            status,
+            stop or StopReason.ANSWERED,
+            ctx,
+            steps,
+            usage,
+            n_tool_calls,
+            loop_hits,
+            latency_ms,
+        )
 
     async def _finalize(
         self,
@@ -330,7 +363,9 @@ class AgenticRAG:
         except (TimeoutError, LLMError) as exc:
             logger.warning("agent final answer call failed: %s", exc)
             return "", Usage()
-        steps.append(AgentStep(step=-1, stop_reason=resp.stop_reason, text=resp.text, usage=resp.usage))
+        steps.append(
+            AgentStep(step=-1, stop_reason=resp.stop_reason, text=resp.text, usage=resp.usage)
+        )
         if resp.stop_reason == "tool_use":
             logger.warning("agent kept calling tools after the budget; using its text only")
         return resp.text, resp.usage

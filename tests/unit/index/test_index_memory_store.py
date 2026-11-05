@@ -17,8 +17,13 @@ SECRET = ACL(allow_groups=["hr"])
 
 def chunk(doc: str, pos: int, acl: ACL = PUBLIC, tenant: str = "default", **meta: object) -> Chunk:
     return Chunk(
-        chunk_id=f"{doc}-{pos}", doc_id=doc, position=pos, text=f"{doc} chunk {pos}",
-        acl=acl, tenant_id=tenant, metadata=dict(meta),
+        chunk_id=f"{doc}-{pos}",
+        doc_id=doc,
+        position=pos,
+        text=f"{doc} chunk {pos}",
+        acl=acl,
+        tenant_id=tenant,
+        metadata=dict(meta),
     )
 
 
@@ -38,7 +43,9 @@ async def test_acl_enforced_before_top_k() -> None:
     visible_chunks = [chunk("pub", i) for i in range(5)]
     other_tenant = [chunk("t2", 0, tenant="acme")]
     await s.upsert(restricted, np.tile(vec(1, 0), (5, 1)))
-    await s.upsert(visible_chunks, np.array([[1, 0.2 * (i + 1)] for i in range(5)], dtype=np.float32))
+    await s.upsert(
+        visible_chunks, np.array([[1, 0.2 * (i + 1)] for i in range(5)], dtype=np.float32)
+    )
     await s.upsert(other_tenant, vec(1, 0))
     hits = await s.search(vec(1, 0), 3, ALICE)
     assert len(hits) == 3
@@ -53,14 +60,19 @@ async def test_acl_enforced_before_top_k() -> None:
 
 async def test_metadata_filter_and_upsert_delete() -> None:
     s = InMemoryVectorStore(dim=2)
-    await s.upsert([chunk("a", 0, doc_type="faq"), chunk("b", 0, doc_type="policy")], np.eye(2, dtype=np.float32))
+    await s.upsert(
+        [chunk("a", 0, doc_type="faq"), chunk("b", 0, doc_type="policy")],
+        np.eye(2, dtype=np.float32),
+    )
     hits = await s.search(vec(1, 0), 5, ALICE, Filter.eq(doc_type="policy"))
     assert [h.chunk.doc_id for h in hits] == ["b"]
     await s.upsert([chunk("a", 0, doc_type="faq")], vec(0, 1).reshape(1, -1))  # upsert by chunk_id
     assert await s.count() == 2
     assert (await s.search(vec(0, 1), 1, ALICE))[0].score == pytest.approx(1.0)
     assert await s.delete_doc("a") == 1
-    assert await s.count() == 1 and await s.get(["a-0", "b-0"]) == [chunk("b", 0, doc_type="policy")]
+    assert await s.count() == 1 and await s.get(["a-0", "b-0"]) == [
+        chunk("b", 0, doc_type="policy")
+    ]
     with pytest.raises(ValueError):
         await s.upsert([chunk("c", 0)], vec(1, 2, 3).reshape(1, -1))
 

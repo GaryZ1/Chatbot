@@ -7,7 +7,14 @@ import pytest
 
 from chatbot.core.types import ACL, Chunk, Document, Principal, utcnow
 from chatbot.embed import HashingEmbedder
-from chatbot.index import AliasManager, BM25Index, IndexAction, IndexSchema, IndexWriter, InMemoryVectorStore
+from chatbot.index import (
+    AliasManager,
+    BM25Index,
+    IndexAction,
+    IndexSchema,
+    IndexWriter,
+    InMemoryVectorStore,
+)
 
 P = Principal(user_id="u")
 
@@ -15,8 +22,12 @@ P = Principal(user_id="u")
 def chunks_for(doc: Document, texts: list[str]) -> list[Chunk]:
     return [
         Chunk(
-            chunk_id=Chunk.make_id(doc.doc_id, doc.version, i), doc_id=doc.doc_id, doc_version=doc.version,
-            position=i, text=t, acl=ACL(public=True),
+            chunk_id=Chunk.make_id(doc.doc_id, doc.version, i),
+            doc_id=doc.doc_id,
+            doc_version=doc.version,
+            position=i,
+            text=t,
+            acl=ACL(public=True),
         )
         for i, t in enumerate(texts)
     ]
@@ -77,16 +88,25 @@ async def test_index_writer_lifecycle() -> None:
 
     from chatbot.core.types import Block, BlockType
 
-    doc2 = doc.model_copy(update={"version": "2", "blocks": [Block(type=BlockType.PARAGRAPH, text="changed")]})
+    doc2 = doc.model_copy(
+        update={"version": "2", "blocks": [Block(type=BlockType.PARAGRAPH, text="changed")]}
+    )
     r2 = await w.index_document(doc2, chunks_for(doc2, ["alpha changed"]))
     assert r2.action is IndexAction.INDEXED and r2.chunks_deleted == 3
     stored = await store.by_doc("d")
     assert [c.text for c in stored] == ["alpha changed"]
-    assert stored[0].metadata["is_latest"] is True and stored[0].metadata["embedding_model"] == "hashing@1:64"
+    assert (
+        stored[0].metadata["is_latest"] is True
+        and stored[0].metadata["embedding_model"] == "hashing@1:64"
+    )
     assert [h.chunk.text for h in await bm25.search("beta", 5, P)] == []
     # A fresh writer recognises unchanged content from stored metadata.
-    assert (await IndexWriter(emb, store, bm25).index_document(doc2, [])).action is IndexAction.SKIPPED
-    assert (await w.index_document(doc2.model_copy(update={"deleted": True}), [])).action is IndexAction.DELETED
+    assert (
+        await IndexWriter(emb, store, bm25).index_document(doc2, [])
+    ).action is IndexAction.SKIPPED
+    assert (
+        await w.index_document(doc2.model_copy(update={"deleted": True}), [])
+    ).action is IndexAction.DELETED
     assert await store.count() == 0 and await bm25.count() == 0
     assert w.freshness.summary()["count"] == 2.0
 

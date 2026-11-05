@@ -20,7 +20,9 @@ from chatbot.retrieve import (
 def sc(cid: str, score: float, stage: str = "x", text: str | None = None) -> ScoredChunk:
     return ScoredChunk(
         chunk=Chunk(chunk_id=cid, doc_id=cid, text=text or f"text {cid}"),
-        score=score, source=stage, stage_scores={stage: score},
+        score=score,
+        source=stage,
+        stage_scores={stage: score},
     )
 
 
