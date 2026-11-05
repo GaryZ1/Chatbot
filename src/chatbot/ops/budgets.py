@@ -47,7 +47,13 @@ class BudgetLimits(BaseModel):
 
     @classmethod
     def agentic(cls) -> BudgetLimits:
-        return cls(max_llm_calls=20, max_tokens=250_000, max_agent_steps=12, max_tool_calls=30, deadline_s=120.0)
+        return cls(
+            max_llm_calls=20,
+            max_tokens=250_000,
+            max_agent_steps=12,
+            max_tool_calls=30,
+            deadline_s=120.0,
+        )
 
 
 class RequestBudget:
@@ -135,7 +141,9 @@ class RequestBudget:
         except TimeoutError as exc:
             if isinstance(exc, DeadlineExceeded):
                 raise
-            raise DeadlineExceeded(f"stage {stage or '?'} timed out after {timeout:.3f}s", stage) from exc
+            raise DeadlineExceeded(
+                f"stage {stage or '?'} timed out after {timeout:.3f}s", stage
+            ) from exc
 
     def snapshot(self) -> dict[str, float]:
         return {

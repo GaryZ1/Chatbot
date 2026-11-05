@@ -100,7 +100,9 @@ class Counter(_Metric):
         return sum(self._values.values())
 
     def render(self) -> list[str]:
-        return [f"{self.name}{_fmt_labels(k)} {_fmt_value(v)}" for k, v in sorted(self._values.items())]
+        return [
+            f"{self.name}{_fmt_labels(k)} {_fmt_value(v)}" for k, v in sorted(self._values.items())
+        ]
 
 
 class Gauge(_Metric):
@@ -118,7 +120,9 @@ class Gauge(_Metric):
         return self._values.get(_labels(labels), math.nan)
 
     def render(self) -> list[str]:
-        return [f"{self.name}{_fmt_labels(k)} {_fmt_value(v)}" for k, v in sorted(self._values.items())]
+        return [
+            f"{self.name}{_fmt_labels(k)} {_fmt_value(v)}" for k, v in sorted(self._values.items())
+        ]
 
 
 @dataclass(slots=True)
@@ -307,13 +311,17 @@ DEFAULT_PRICES: dict[str, ModelPrice] = {
 class PriceTable:
     """Model id -> price. Lookup is exact, then longest prefix (dated / suffixed ids)."""
 
-    def __init__(self, prices: Mapping[str, ModelPrice] | None = None, *, strict: bool = False) -> None:
+    def __init__(
+        self, prices: Mapping[str, ModelPrice] | None = None, *, strict: bool = False
+    ) -> None:
         self.prices: dict[str, ModelPrice] = dict(DEFAULT_PRICES if prices is None else prices)
         self.strict = strict
         self._warned: set[str] = set()
 
     @classmethod
-    def from_config(cls, data: Mapping[str, Mapping[str, float]], *, strict: bool = False) -> PriceTable:
+    def from_config(
+        cls, data: Mapping[str, Mapping[str, float]], *, strict: bool = False
+    ) -> PriceTable:
         """``{"model": {"input": 1.0, "output": 5.0, "cache_read": 0.1}}`` (USD / MTok)."""
         table = dict(DEFAULT_PRICES)
         for model, p in data.items():

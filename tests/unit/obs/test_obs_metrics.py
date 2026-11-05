@@ -3,7 +3,14 @@ import math
 import pytest
 
 from chatbot.llm.base import Usage
-from chatbot.obs.metrics import MetricsRegistry, ModelPrice, PriceTable, cost_per_resolved, estimate_cost, percentile
+from chatbot.obs.metrics import (
+    MetricsRegistry,
+    ModelPrice,
+    PriceTable,
+    cost_per_resolved,
+    estimate_cost,
+    percentile,
+)
 
 
 def test_percentiles():
@@ -27,7 +34,7 @@ def test_histogram_and_prometheus():
     text = reg.render_prometheus()
     assert "# TYPE chatbot_stage_latency_ms summary" in text
     assert 'chatbot_stage_latency_ms{stage="rerank",quantile="0.95"} 95.05' in text
-    assert "chatbot_stage_latency_ms_count{stage=\"rerank\"} 100" in text
+    assert 'chatbot_stage_latency_ms_count{stage="rerank"} 100' in text
     assert 'chatbot_requests_total{route="rag",status="answered"} 3' in text
     with pytest.raises(TypeError):
         reg.counter("stage_latency_ms")
@@ -41,7 +48,9 @@ def test_cost_defaults():
     # haiku: cache reads default to 10% of input
     assert estimate_cost("claude-haiku-5-5", u) == pytest.approx(0.10 + 0.50 + 0.01)
     # prefix match on suffixed ids
-    assert estimate_cost("claude-opus-5-5-20261101", Usage(output_tokens=1000)) == pytest.approx(0.02)
+    assert estimate_cost("claude-opus-5-5-20261101", Usage(output_tokens=1000)) == pytest.approx(
+        0.02
+    )
     assert estimate_cost("unknown-model", u) == 0.0
     with pytest.raises(KeyError):
         PriceTable(strict=True).cost("unknown-model", u)
@@ -61,8 +70,12 @@ def test_cost_per_resolved():
 def test_observe_request():
     reg = MetricsRegistry()
     reg.observe_request(
-        route="rag", status="answered", latency_ms={"retrieve": 40.0, "total": 900.0},
-        model="claude-haiku-5-5", usage=Usage(input_tokens=10, output_tokens=5), cost_usd=0.001,
+        route="rag",
+        status="answered",
+        latency_ms={"retrieve": 40.0, "total": 900.0},
+        model="claude-haiku-5-5",
+        usage=Usage(input_tokens=10, output_tokens=5),
+        cost_usd=0.001,
     )
     assert reg.counter("llm_tokens_total").value(model="claude-haiku-5-5", kind="input") == 10
     assert reg.histogram("stage_latency_ms").count(stage="total", route="rag") == 1

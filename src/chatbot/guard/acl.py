@@ -260,5 +260,7 @@ class AclMatrix:
     async def assert_ok(self, retrieve: RetrieveFn, *, require_complete: bool = False) -> None:
         violations = await self.check(retrieve, require_complete=require_complete)
         if violations:
-            detail = "\n".join(f"  {v.kind}: {v.user_id} -> {v.doc_id} {v.chunk_ids}" for v in violations)
+            detail = "\n".join(
+                f"  {v.kind}: {v.user_id} -> {v.doc_id} {v.chunk_ids}" for v in violations
+            )
             raise AssertionError(f"ACL matrix violations:\n{detail}\nexpected:\n{self.render()}")

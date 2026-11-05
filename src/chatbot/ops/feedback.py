@@ -89,7 +89,9 @@ class Feedback(BaseModel):
 class FeedbackStore(Protocol):
     async def add(self, feedback: Feedback) -> None: ...
 
-    async def list(self, *, since: datetime | None = None, negative_only: bool = False) -> list[Feedback]: ...
+    async def list(
+        self, *, since: datetime | None = None, negative_only: bool = False
+    ) -> list[Feedback]: ...
 
 
 class InMemoryFeedbackStore:
@@ -99,7 +101,9 @@ class InMemoryFeedbackStore:
     async def add(self, feedback: Feedback) -> None:
         self._items.append(feedback)
 
-    async def list(self, *, since: datetime | None = None, negative_only: bool = False) -> list[Feedback]:
+    async def list(
+        self, *, since: datetime | None = None, negative_only: bool = False
+    ) -> list[Feedback]:
         return [
             f
             for f in self._items
@@ -138,10 +142,14 @@ class JsonlFeedbackStore:
             await asyncio.to_thread(self._write, feedback.model_dump_json())
         if feedback.urgent:
             logger.error(
-                "URGENT feedback on trace %s: %s", feedback.trace_id, [r.value for r in feedback.reasons]
+                "URGENT feedback on trace %s: %s",
+                feedback.trace_id,
+                [r.value for r in feedback.reasons],
             )
 
-    async def list(self, *, since: datetime | None = None, negative_only: bool = False) -> list[Feedback]:
+    async def list(
+        self, *, since: datetime | None = None, negative_only: bool = False
+    ) -> list[Feedback]:
         items = await asyncio.to_thread(self._read)
         return [
             f

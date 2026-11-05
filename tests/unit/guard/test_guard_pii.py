@@ -56,7 +56,10 @@ def test_secrets_detected():
     key_block = "-----BEGIN RSA PRIVATE KEY-----\nMIIEow\nabc\n-----END RSA PRIVATE KEY-----"
     text = (
         "aws AKIAIOSFODNN7EXAMPLE secret aws_secret_access_key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY "
-        "openai sk-proj-abcdefghijklmnopqrstuvwx github ghp_" + "a" * 36 + "\n" + key_block
+        "openai sk-proj-abcdefghijklmnopqrstuvwx github ghp_"
+        + "a" * 36
+        + "\n"
+        + key_block
         + "\npassword: hunter2hunter2"
     )
     r = d.redact(text)

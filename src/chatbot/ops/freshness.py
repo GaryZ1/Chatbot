@@ -129,7 +129,9 @@ class FreshnessTracker:
             logger.warning("freshness SLO miss: %s lag %.0fs > %.0fs", doc_id, lag, self.slo_s)
         return rec
 
-    def record_document(self, doc: Document, *, indexed_at: datetime | None = None) -> FreshnessRecord:
+    def record_document(
+        self, doc: Document, *, indexed_at: datetime | None = None
+    ) -> FreshnessRecord:
         updated = doc.updated_at or doc.created_at or self._now()
         return self.record_indexed(
             doc.doc_id,
@@ -173,14 +175,18 @@ class FreshnessTracker:
             lag_max_s=round(max(lags), 3) if lags else 0.0,
             slo_attainment=within / len(recs) if recs else 1.0,
             slo_met=p95 <= self.slo_s,
-            violations=sorted(r.doc_id for r, lag in zip(recs, lags, strict=True) if lag > self.slo_s),
+            violations=sorted(
+                r.doc_id for r, lag in zip(recs, lags, strict=True) if lag > self.slo_s
+            ),
             pending=sorted(r.doc_id for r in recs if r.pending),
             stale=self.stale_documents(),
             duplicates=self.duplicates(),
         )
 
 
-def stale_documents(docs: Iterable[Document], *, months: int = 6, now: datetime | None = None) -> list[str]:
+def stale_documents(
+    docs: Iterable[Document], *, months: int = 6, now: datetime | None = None
+) -> list[str]:
     """Doc ids whose ``updated_at`` (or ``created_at``) is older than ``months`` (30-day months)."""
     ref = now or datetime.now(UTC)
     cutoff = ref - timedelta(days=30 * months)

@@ -62,7 +62,9 @@ def test_citation_validation():
 
 
 def test_split_claims_skips_meta():
-    claims = split_claims("Here is the answer.\n- Employees accrue 20 vacation days [1].\n# Heading")
+    claims = split_claims(
+        "Here is the answer.\n- Employees accrue 20 vacation days [1].\n# Heading"
+    )
     assert claims == ["Employees accrue 20 vacation days [1]."]
 
 
@@ -78,7 +80,9 @@ def test_groundedness_flags_unsupported_claim():
 
 
 def test_wrong_number_is_unsupported():
-    r = GroundednessChecker().cheap("Employees accrue 25 days of paid vacation per year [1].", SOURCES)
+    r = GroundednessChecker().cheap(
+        "Employees accrue 25 days of paid vacation per year [1].", SOURCES
+    )
     assert r.unsupported
 
 
@@ -104,13 +108,21 @@ async def test_output_guard_delivers_grounded_and_sanitized():
 
 
 async def test_invalid_citation_regenerates():
-    v = await OutputGuard().check("Employees accrue 20 days of paid vacation per year [4].", SOURCES)
+    v = await OutputGuard().check(
+        "Employees accrue 20 days of paid vacation per year [4].", SOURCES
+    )
     assert v.action is OutputAction.REGENERATE
     assert v.invalid_citations == [4]
 
 
 async def test_output_pii_redacted_unless_in_sources():
-    srcs = [Chunk(chunk_id="c", doc_id="d", text="Contact support at help@acme.com for VPN access requests.")]
+    srcs = [
+        Chunk(
+            chunk_id="c",
+            doc_id="d",
+            text="Contact support at help@acme.com for VPN access requests.",
+        )
+    ]
     v = await OutputGuard().check(
         "Contact support at help@acme.com for VPN access requests [1]. Bob's email is bob@private.net.",
         srcs,
@@ -124,7 +136,9 @@ async def test_two_tier_judge_only_when_borderline():
 
     def judge(req):
         calls.append(req)
-        return json.dumps({"grounded": True, "score": 0.9, "unsupported_claims": [], "reason": "ok"})
+        return json.dumps(
+            {"grounded": True, "score": 0.9, "unsupported_claims": [], "reason": "ok"}
+        )
 
     pol = GroundednessPolicy(low=0.3, high=0.75)
     checker = GroundednessChecker(pol, llm=FakeLLM(handler=judge))
@@ -133,12 +147,15 @@ async def test_two_tier_judge_only_when_borderline():
     assert r.grounded and not r.judge_used and not calls
     # borderline (paraphrase) -> LLM judge
     r = await checker.check(
-        "Staff accrue 20 days of paid vacation annually, and leftover days carry forward [1].", SOURCES
+        "Staff accrue 20 days of paid vacation annually, and leftover days carry forward [1].",
+        SOURCES,
     )
     assert r.judge_used and r.grounded and len(calls) == 1
     assert "<sources>" in calls[0].messages[0].content
 
 
 async def test_abstention_delivered():
-    v = await OutputGuard().check("I don't know based on the available documents.", SOURCES, abstained=True)
+    v = await OutputGuard().check(
+        "I don't know based on the available documents.", SOURCES, abstained=True
+    )
     assert v.action is OutputAction.DELIVER

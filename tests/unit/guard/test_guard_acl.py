@@ -18,7 +18,12 @@ CAROL = Principal(user_id="carol", groups=frozenset({"eng", "contractors"}))
 
 CHUNKS = [
     Chunk(chunk_id="pub", doc_id="handbook", text="t", acl=ACL(public=True)),
-    Chunk(chunk_id="eng1", doc_id="eng-wiki", text="t", acl=ACL(allow_groups=["eng"], deny_groups=["contractors"])),
+    Chunk(
+        chunk_id="eng1",
+        doc_id="eng-wiki",
+        text="t",
+        acl=ACL(allow_groups=["eng"], deny_groups=["contractors"]),
+    ),
     Chunk(chunk_id="sales1", doc_id="pipeline", text="t", acl=ACL(allow_groups=["sales"])),
     Chunk(chunk_id="bob1", doc_id="bob-notes", text="t", acl=ACL(allow_users=["bob"])),
 ]
@@ -59,7 +64,11 @@ async def test_matrix_check_correct_and_leaky_retrievers():
     assert await m.check(correct, require_complete=True) == []
     await m.assert_ok(correct)
     violations = await m.check(leaky)
-    assert {(v.user_id, v.doc_id) for v in violations} == {("carol", "eng-wiki"), ("eve", "handbook"), ("eve", "eng-wiki")}
+    assert {(v.user_id, v.doc_id) for v in violations} == {
+        ("carol", "eng-wiki"),
+        ("eve", "handbook"),
+        ("eve", "eng-wiki"),
+    }
     with pytest.raises(AssertionError):
         await m.assert_ok(leaky)
 
@@ -73,7 +82,10 @@ async def test_matrix_check_correct_and_leaky_retrievers():
 async def test_static_resolver_ttl_and_nested_groups():
     now = [0.0]
     r = StaticGroupResolver(
-        {"alice": {"eng-backend"}}, group_parents={"eng-backend": {"eng"}}, ttl_s=60, clock=lambda: now[0]
+        {"alice": {"eng-backend"}},
+        group_parents={"eng-backend": {"eng"}},
+        ttl_s=60,
+        clock=lambda: now[0],
     )
     p = await r.resolve("alice")
     assert p.groups == {"eng-backend", "eng"}

@@ -130,7 +130,9 @@ class JsonlTraceStore:
     async def list(
         self, *, limit: int | None = None, since: datetime | None = None, route: str | None = None
     ) -> list[TraceRecord]:
-        recs = [r for r in (await asyncio.to_thread(self._load)).values() if _match(r, since, route)]
+        recs = [
+            r for r in (await asyncio.to_thread(self._load)).values() if _match(r, since, route)
+        ]
         return recs[-limit:] if limit else recs
 
     async def attach_feedback(self, trace_id: str, feedback: dict[str, object]) -> bool:

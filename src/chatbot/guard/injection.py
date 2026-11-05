@@ -40,9 +40,7 @@ logger = logging.getLogger(__name__)
 # --------------------------------------------------------------------------- normalisation
 
 #: Zero-width, bidi-control, soft hyphen and Unicode tag characters (hidden-text tricks).
-_INVISIBLE_RE = re.compile(
-    "[­᠎​-‏‪-‮⁠-⁤⁦-⁩﻿\U000e0000-\U000e007f]"
-)
+_INVISIBLE_RE = re.compile("[­᠎​-‏‪-‮⁠-⁤⁦-⁩﻿\U000e0000-\U000e007f]")
 
 #: Common Cyrillic / Greek homoglyphs of Latin letters (NFKC does not fold these).
 _CONFUSABLES = str.maketrans(
@@ -121,10 +119,30 @@ DEFAULT_RULES: tuple[InjectionRule, ...] = (
         0.3,
         "override",
     ),
-    _r("new_instructions", r"\b(?:new|updated|real|actual|true)\s+(?:system\s+)?instructions?\s*[:\-]", 0.5, "override"),
-    _r("from_now_on", r"\bfrom now on\b[^.\n]{0,40}\b(?:you (?:will|must|are|shall)|respond|answer|act)\b", 0.35, "override"),
-    _r("no_refusal", r"\b(?:never|do not|don't|must not|cannot|can't)\s+(?:refuse|decline|say no)\b", 0.4, "override"),
-    _r("no_restrictions", r"\bwithout (?:any )?(?:restrictions|limitations|limits|filters|censorship|guidelines|rules|ethics)\b", 0.35, "jailbreak"),
+    _r(
+        "new_instructions",
+        r"\b(?:new|updated|real|actual|true)\s+(?:system\s+)?instructions?\s*[:\-]",
+        0.5,
+        "override",
+    ),
+    _r(
+        "from_now_on",
+        r"\bfrom now on\b[^.\n]{0,40}\b(?:you (?:will|must|are|shall)|respond|answer|act)\b",
+        0.35,
+        "override",
+    ),
+    _r(
+        "no_refusal",
+        r"\b(?:never|do not|don't|must not|cannot|can't)\s+(?:refuse|decline|say no)\b",
+        0.4,
+        "override",
+    ),
+    _r(
+        "no_restrictions",
+        r"\bwithout (?:any )?(?:restrictions|limitations|limits|filters|censorship|guidelines|rules|ethics)\b",
+        0.35,
+        "jailbreak",
+    ),
     _r(
         "system_prompt_exfil",
         r"\b(?:reveal|show|print|repeat|output|display|leak|dump|give me|tell me|share|recite|disclose|what (?:is|are|was|were))\b[^.\n]{0,30}?\byour\s+(?:system\s+|initial\s+|hidden\s+|original\s+|secret\s+)?(?:prompt|instructions|rules|guidelines|configuration)\b",
@@ -137,10 +155,30 @@ DEFAULT_RULES: tuple[InjectionRule, ...] = (
         0.45,
         "exfil_system_prompt",
     ),
-    _r("repeat_above", r"\b(?:repeat|print|output|copy)\b[^.\n]{0,25}\b(?:everything|all|the (?:text|words))\b[^.\n]{0,20}\b(?:above|before this|so far)\b", 0.5, "exfil_system_prompt"),
-    _r("verbatim_prompt", r"\b(?:verbatim|word for word)\b[^.\n]{0,40}\b(?:prompt|instructions)\b|\b(?:prompt|instructions)\b[^.\n]{0,20}\b(?:verbatim|word for word)\b", 0.35, "exfil_system_prompt"),
-    _r("dan", r"\b(?:dan mode|do anything now|act as dan|you are (?:now )?dan|stan mode|dude mode)\b", 0.8, "jailbreak"),
-    _r("developer_mode", r"\b(?:developer|god|debug|admin|sudo|jailbreak|unrestricted|unfiltered)\s+mode\b", 0.55, "jailbreak"),
+    _r(
+        "repeat_above",
+        r"\b(?:repeat|print|output|copy)\b[^.\n]{0,25}\b(?:everything|all|the (?:text|words))\b[^.\n]{0,20}\b(?:above|before this|so far)\b",
+        0.5,
+        "exfil_system_prompt",
+    ),
+    _r(
+        "verbatim_prompt",
+        r"\b(?:verbatim|word for word)\b[^.\n]{0,40}\b(?:prompt|instructions)\b|\b(?:prompt|instructions)\b[^.\n]{0,20}\b(?:verbatim|word for word)\b",
+        0.35,
+        "exfil_system_prompt",
+    ),
+    _r(
+        "dan",
+        r"\b(?:dan mode|do anything now|act as dan|you are (?:now )?dan|stan mode|dude mode)\b",
+        0.8,
+        "jailbreak",
+    ),
+    _r(
+        "developer_mode",
+        r"\b(?:developer|god|debug|admin|sudo|jailbreak|unrestricted|unfiltered)\s+mode\b",
+        0.55,
+        "jailbreak",
+    ),
     _r("jailbreak_word", r"\bjail ?break(?:ing|ed)?\b", 0.35, "jailbreak"),
     _r(
         "persona_override",
@@ -148,8 +186,18 @@ DEFAULT_RULES: tuple[InjectionRule, ...] = (
         0.65,
         "jailbreak",
     ),
-    _r("chat_template_tokens", r"<\|(?:im_start|im_end|system|endoftext)\|>|\[/?inst\]|<<sys>>", 0.5, "override"),
-    _r("fake_turn", r"(?m:^\s*(?:###\s*)?(?:system|assistant)\s*(?:message|prompt)?\s*:)", 0.35, "override"),
+    _r(
+        "chat_template_tokens",
+        r"<\|(?:im_start|im_end|system|endoftext)\|>|\[/?inst\]|<<sys>>",
+        0.5,
+        "override",
+    ),
+    _r(
+        "fake_turn",
+        r"(?m:^\s*(?:###\s*)?(?:system|assistant)\s*(?:message|prompt)?\s*:)",
+        0.35,
+        "override",
+    ),
     _r(
         "exfil_send",
         r"\b(?:send|post|forward|email|e-mail|upload|exfiltrate|transmit|leak|submit)\b[^.\n]{0,60}?\b(?:to|at|into)\b\s*(?:https?://|www\.|[\w.+-]+@[\w-]+\.)",
@@ -157,20 +205,70 @@ DEFAULT_RULES: tuple[InjectionRule, ...] = (
         "tool_exfil",
     ),
     _r("markdown_image_exfil", r"!\[[^\]]*\]\(\s*https?://[^)\s]*\?[^)\s]*=", 0.5, "tool_exfil"),
-    _r("url_with_placeholder", r"https?://\S*(?:\{|%7b|<)\s*(?:data|secret|prompt|conversation|history|user|token)", 0.5, "tool_exfil"),
-    _r("tool_invocation", r"\b(?:call|invoke|use|run|execute)\s+(?:the\s+)?[\w\-]+\s+(?:tool|function|plugin|api)\b[^.\n]{0,40}\b(?:with|to)\b", 0.3, "tool_exfil"),
-    _r("run_command", r"\b(?:execute|run)\s+(?:the\s+)?following\s+(?:command|code|script|shell)\b|\bcurl\s+-[a-z]*\s*https?://|\brm\s+-rf\s+/", 0.35, "tool_exfil"),
-    _r("hidden_html", r"<!--[^>]{0,400}?(?:ignore|instruction|assistant|system|prompt)[^>]{0,400}?-->|display\s*:\s*none|font-size\s*:\s*0|color\s*:\s*(?:white|#fff(?:fff)?)\b", 0.35, "hidden_text"),
+    _r(
+        "url_with_placeholder",
+        r"https?://\S*(?:\{|%7b|<)\s*(?:data|secret|prompt|conversation|history|user|token)",
+        0.5,
+        "tool_exfil",
+    ),
+    _r(
+        "tool_invocation",
+        r"\b(?:call|invoke|use|run|execute)\s+(?:the\s+)?[\w\-]+\s+(?:tool|function|plugin|api)\b[^.\n]{0,40}\b(?:with|to)\b",
+        0.3,
+        "tool_exfil",
+    ),
+    _r(
+        "run_command",
+        r"\b(?:execute|run)\s+(?:the\s+)?following\s+(?:command|code|script|shell)\b|\bcurl\s+-[a-z]*\s*https?://|\brm\s+-rf\s+/",
+        0.35,
+        "tool_exfil",
+    ),
+    _r(
+        "hidden_html",
+        r"<!--[^>]{0,400}?(?:ignore|instruction|assistant|system|prompt)[^>]{0,400}?-->|display\s*:\s*none|font-size\s*:\s*0|color\s*:\s*(?:white|#fff(?:fff)?)\b",
+        0.35,
+        "hidden_text",
+    ),
 )
 
 #: Extra rules for retrieved content (indirect injection: text addressed to the model).
 INDIRECT_RULES: tuple[InjectionRule, ...] = (
-    _r("addressed_to_ai", r"\b(?:if you are|attention|note to|message for|dear|hey)\s+(?:an?\s+|the\s+)?(?:ai|llm|assistant|language model|chatbot|gpt|claude|bot|model)\b", 0.5, "indirect"),
-    _r("ai_reading_this", r"\b(?:ai|assistant|chatbot|llm|model|agent)s?\s+(?:reading|processing|summari[sz]ing|parsing|seeing)\s+this\b", 0.55, "indirect"),
-    _r("when_answering", r"\bwhen (?:summari[sz]ing|answering|responding|asked|you answer|you respond)\b[^.\n]{0,60}\b(?:tell|say|include|recommend|insert|claim|state|respond with|reply with|mention)\b", 0.45, "indirect"),
-    _r("hide_from_user", r"\b(?:do not|don't|never)\s+(?:tell|mention|reveal|inform|show)\b[^.\n]{0,30}\b(?:the user|users|anyone|the human|the customer)\b", 0.45, "indirect"),
-    _r("instead_respond", r"\binstead,?\s+(?:respond|reply|answer|say|output|write)\b", 0.35, "indirect"),
-    _r("important_instruction", r"\b(?:important|urgent|critical)\s*(?:!|:)?\s*(?:new\s+)?instructions?\b", 0.4, "indirect"),
+    _r(
+        "addressed_to_ai",
+        r"\b(?:if you are|attention|note to|message for|dear|hey)\s+(?:an?\s+|the\s+)?(?:ai|llm|assistant|language model|chatbot|gpt|claude|bot|model)\b",
+        0.5,
+        "indirect",
+    ),
+    _r(
+        "ai_reading_this",
+        r"\b(?:ai|assistant|chatbot|llm|model|agent)s?\s+(?:reading|processing|summari[sz]ing|parsing|seeing)\s+this\b",
+        0.55,
+        "indirect",
+    ),
+    _r(
+        "when_answering",
+        r"\bwhen (?:summari[sz]ing|answering|responding|asked|you answer|you respond)\b[^.\n]{0,60}\b(?:tell|say|include|recommend|insert|claim|state|respond with|reply with|mention)\b",
+        0.45,
+        "indirect",
+    ),
+    _r(
+        "hide_from_user",
+        r"\b(?:do not|don't|never)\s+(?:tell|mention|reveal|inform|show)\b[^.\n]{0,30}\b(?:the user|users|anyone|the human|the customer)\b",
+        0.45,
+        "indirect",
+    ),
+    _r(
+        "instead_respond",
+        r"\binstead,?\s+(?:respond|reply|answer|say|output|write)\b",
+        0.35,
+        "indirect",
+    ),
+    _r(
+        "important_instruction",
+        r"\b(?:important|urgent|critical)\s*(?:!|:)?\s*(?:new\s+)?instructions?\b",
+        0.4,
+        "indirect",
+    ),
 )
 
 _BASE64_RE = re.compile(r"(?<![A-Za-z0-9+/=])[A-Za-z0-9+/]{32,}={0,2}(?![A-Za-z0-9+/=])")
@@ -333,7 +431,9 @@ class InjectionDetector:
                     cats.append("encoding")
         return weights, matched, cats, signals
 
-    def _score(self, text: str, rules: Sequence[InjectionRule], threshold: float) -> InjectionResult:
+    def _score(
+        self, text: str, rules: Sequence[InjectionRule], threshold: float
+    ) -> InjectionResult:
         weights, matched, cats, signals = self._evaluate(text, rules)
         return InjectionResult(
             score=round(_noisy_or(weights), 4),

@@ -8,7 +8,14 @@ from chatbot.guard.verdicts import GuardVerdict
 from chatbot.llm.base import Usage
 from chatbot.obs.metrics import PriceTable
 from chatbot.obs.trace_store import InMemoryTraceStore, JsonlTraceStore, replay, replay_store
-from chatbot.obs.tracing import Tracer, TraceRecord, current_trace, genai_attributes, redact_record, traced
+from chatbot.obs.tracing import (
+    Tracer,
+    TraceRecord,
+    current_trace,
+    genai_attributes,
+    redact_record,
+    traced,
+)
 
 ALICE = Principal(user_id="alice", groups=frozenset({"eng"}))
 
@@ -38,9 +45,13 @@ async def test_trace_records_everything_and_redacts(caplog):
     store = InMemoryTraceStore()
     tracer = Tracer(store, pipeline_version="v2", clock=clock, prices=PriceTable())
     caplog.set_level(logging.INFO, logger="chatbot.trace")
-    async with tracer.trace(query="my email is jane@acme.com, why?", principal=ALICE, route="rag") as t:
+    async with tracer.trace(
+        query="my email is jane@acme.com, why?", principal=ALICE, route="rag"
+    ) as t:
         assert current_trace() is t
-        t.set(condensed_query="why jane@acme.com", filters={"doc_type": "policy"}, prompt_version="p7")
+        t.set(
+            condensed_query="why jane@acme.com", filters={"doc_type": "policy"}, prompt_version="p7"
+        )
         with t.span("condense", model="small"):
             clock.t += 0.2
         hits = await fake_retrieve(clock)
@@ -53,7 +64,9 @@ async def test_trace_records_everything_and_redacts(caplog):
             Answer(
                 text="Contact jane@acme.com [1]",
                 status=AnswerStatus.ANSWERED,
-                citations=[Citation(index=1, chunk_id="c1", doc_id="d1", snippet="call 415-555-0132 now")],
+                citations=[
+                    Citation(index=1, chunk_id="c1", doc_id="d1", snippet="call 415-555-0132 now")
+                ],
             )
         )
     assert current_trace() is None
@@ -89,7 +102,9 @@ async def test_span_error_recorded():
 
 
 def test_redact_record_and_genai_attributes():
-    rec = TraceRecord(trace_id="t", query="ssn 123-45-6789", model="claude-opus-5-5", usage={"input_tokens": 5})
+    rec = TraceRecord(
+        trace_id="t", query="ssn 123-45-6789", model="claude-opus-5-5", usage={"input_tokens": 5}
+    )
     red = redact_record(rec)
     assert "123-45-6789" not in red.query and "123-45-6789" in rec.query
     attrs = genai_attributes(red)

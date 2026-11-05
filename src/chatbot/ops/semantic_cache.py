@@ -209,7 +209,11 @@ class SemanticCache:
             return self._reject(f"status:{answer.status.value}")
         if answer.guardrail_flags:
             return self._reject("guardrail_flags")
-        docs = frozenset(doc_ids) if doc_ids is not None else frozenset(c.doc_id for c in answer.citations)
+        docs = (
+            frozenset(doc_ids)
+            if doc_ids is not None
+            else frozenset(c.doc_id for c in answer.citations)
+        )
         if not docs:
             return self._reject("no_documents")
         vec = await self._embed(query)
@@ -249,7 +253,9 @@ class SemanticCache:
             logger.info("semantic cache: invalidated %d entries for doc %s", len(keys), doc_id)
         return len(keys)
 
-    async def invalidate_index_version(self, version: str | None = None, *, keep: str | None = None) -> int:
+    async def invalidate_index_version(
+        self, version: str | None = None, *, keep: str | None = None
+    ) -> int:
         """Drop entries of index ``version``, or of every version except ``keep``."""
         if (version is None) == (keep is None):
             raise ValueError("pass exactly one of version / keep")

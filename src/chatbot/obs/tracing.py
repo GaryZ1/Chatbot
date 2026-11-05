@@ -464,7 +464,9 @@ def genai_attributes(record: TraceRecord, provider: str = "anthropic") -> dict[s
         "rag.status": record.status,
         "rag.cost_usd": record.cost_usd,
         "rag.cache_hit": record.cache_hit,
-        "rag.guardrail_actions": [str(g.get("action", g.get("flag", ""))) for g in record.guardrails],
+        "rag.guardrail_actions": [
+            str(g.get("action", g.get("flag", ""))) for g in record.guardrails
+        ],
     }
     if record.conversation_id:
         attrs["gen_ai.conversation.id"] = record.conversation_id

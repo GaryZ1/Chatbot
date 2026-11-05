@@ -100,7 +100,9 @@ class InputGuard:
         n_tokens = self.tokenizer.count(text)
         verdict.scores["input_tokens"] = float(n_tokens)
         if n_tokens > p.max_tokens:
-            verdict.escalate_to(GuardAction.BLOCK, f"input exceeds {p.max_tokens} tokens", "too_long")
+            verdict.escalate_to(
+                GuardAction.BLOCK, f"input exceeds {p.max_tokens} tokens", "too_long"
+            )
             return verdict
 
         # 2. rate limit / budget hook
@@ -158,7 +160,9 @@ class InputGuard:
         # 5. topic / scope policy
         in_scope, why = self.topics.check(working)
         if not in_scope:
-            verdict.escalate_to(self.policy.topics.off_topic_action, f"out of scope ({why})", "off_topic")
+            verdict.escalate_to(
+                self.policy.topics.off_topic_action, f"out of scope ({why})", "off_topic"
+            )
             if verdict.blocked:
                 return verdict
 

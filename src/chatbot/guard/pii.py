@@ -217,7 +217,9 @@ _PATTERNS: tuple[_Pattern, ...] = (
         group=1,
         score=0.8,
     ),
-    _Pattern(PIIType.CREDIT_CARD, re.compile(r"(?<![\d-])(?:\d[ -]?){12,18}\d(?![\d-])"), _card_valid),
+    _Pattern(
+        PIIType.CREDIT_CARD, re.compile(r"(?<![\d-])(?:\d[ -]?){12,18}\d(?![\d-])"), _card_valid
+    ),
     _Pattern(
         PIIType.IBAN,
         re.compile(r"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]){11,30}\b"),
@@ -232,7 +234,9 @@ _PATTERNS: tuple[_Pattern, ...] = (
     ),
     _Pattern(
         PIIType.EMAIL,
-        re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}\b"),
+        re.compile(
+            r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}\b"
+        ),
     ),
     _Pattern(
         PIIType.IP_ADDRESS,
@@ -241,7 +245,9 @@ _PATTERNS: tuple[_Pattern, ...] = (
     ),
     _Pattern(
         PIIType.IP_ADDRESS,
-        re.compile(r"(?<![\w:])(?:[0-9A-Fa-f]{1,4}:){2,7}[0-9A-Fa-f]{1,4}(?![\w:])|(?<![\w:])(?:[0-9A-Fa-f]{1,4}:){1,7}:(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,6})?(?![\w:])|::1\b"),
+        re.compile(
+            r"(?<![\w:])(?:[0-9A-Fa-f]{1,4}:){2,7}[0-9A-Fa-f]{1,4}(?![\w:])|(?<![\w:])(?:[0-9A-Fa-f]{1,4}:){1,7}:(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,6})?(?![\w:])|::1\b"
+        ),
         _ip_valid,
     ),
     _Pattern(
@@ -429,7 +435,9 @@ class PresidioDetector:
             if r.score < self.min_score:
                 continue
             t = self._TYPE_MAP.get(r.entity_type, PIIType.OTHER)
-            out.append(PIIMatch(t, r.start, r.end, text[r.start : r.end], float(r.score), self.name))
+            out.append(
+                PIIMatch(t, r.start, r.end, text[r.start : r.end], float(r.score), self.name)
+            )
         return out
 
 

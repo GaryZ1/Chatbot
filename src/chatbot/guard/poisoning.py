@@ -174,7 +174,9 @@ class PoisoningScanner:
                     report.flags.append("low_authority_copy")
 
         suspicious = [
-            f for f in report.flags if f not in ("new_document",) and not f.startswith("duplicate_of:")
+            f
+            for f in report.flags
+            if f not in ("new_document",) and not f.startswith("duplicate_of:")
         ]
         if authority < p.min_authority and suspicious and not report.quarantine:
             report.quarantine = True

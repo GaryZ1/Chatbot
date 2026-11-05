@@ -49,7 +49,9 @@ _MD_IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(\s*<?([^)\s>]*)>?(?:\s+[\"'][^\"']*[\
 _MD_REF_IMAGE_RE = re.compile(r"!\[([^\]]*)\]\[([^\]]*)\]")
 _MD_LINK_RE = re.compile(r"(?<!!)\[([^\]]+)\]\(\s*<?([^)\s>]*)>?(?:\s+[\"'][^\"']*[\"'])?\s*\)")
 _MD_REF_LINK_RE = re.compile(r"(?<![!\]])\[([^\]]+)\]\[([^\]]*)\]")
-_MD_REF_DEF_RE = re.compile(r"(?m)^[ \t]{0,3}\[([^\]]+)\]:[ \t]*<?(\S+?)>?(?:[ \t]+[\"'(].*)?[ \t]*$\n?")
+_MD_REF_DEF_RE = re.compile(
+    r"(?m)^[ \t]{0,3}\[([^\]]+)\]:[ \t]*<?(\S+?)>?(?:[ \t]+[\"'(].*)?[ \t]*$\n?"
+)
 _AUTOLINK_RE = re.compile(r"<((?:https?|ftp|mailto):[^>\s]+)>", re.IGNORECASE)
 _DANGEROUS_HTML_RE = re.compile(
     r"<(script|style|iframe|object|embed|svg|form|template)\b[^>]*>.*?</\1\s*>"
@@ -144,7 +146,12 @@ def sanitize_markdown(
         label, url = m.group(1), m.group(2)
         if url_allowed(url, allowed_domains):
             return m.group(0)
-        flag("unsafe_scheme_removed" if url.lower().startswith(_UNSAFE_SCHEMES) else "external_link_removed", url)
+        flag(
+            "unsafe_scheme_removed"
+            if url.lower().startswith(_UNSAFE_SCHEMES)
+            else "external_link_removed",
+            url,
+        )
         return label
 
     def ref_link(m: re.Match[str]) -> str:
@@ -235,7 +242,147 @@ def remove_invalid_citations(text: str, invalid: Sequence[int]) -> str:
 # --------------------------------------------------------------------------- groundedness
 
 _STOPWORDS = frozenset(
-    ["a", "about", "above", "after", "again", "against", "all", "also", "am", "an", "and", "any", "are", "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can", "could", "did", "do", "does", "doing", "down", "during", "each", "few", "for", "from", "further", "had", "has", "have", "having", "he", "her", "here", "hers", "him", "his", "how", "i", "if", "in", "into", "is", "it", "its", "itself", "just", "me", "more", "most", "my", "no", "nor", "not", "of", "off", "on", "once", "only", "or", "other", "our", "ours", "out", "over", "own", "same", "she", "should", "so", "some", "such", "than", "that", "the", "their", "theirs", "them", "then", "there", "these", "they", "this", "those", "through", "to", "too", "under", "until", "up", "very", "was", "we", "were", "what", "when", "where", "which", "while", "who", "whom", "why", "will", "with", "would", "you", "your", "yours", "yes", "may", "might", "must", "shall", "via", "per", "etc", "use", "used", "using", "one", "two", "get", "got", "make", "made", "like", "well", "really"]
+    [
+        "a",
+        "about",
+        "above",
+        "after",
+        "again",
+        "against",
+        "all",
+        "also",
+        "am",
+        "an",
+        "and",
+        "any",
+        "are",
+        "as",
+        "at",
+        "be",
+        "because",
+        "been",
+        "before",
+        "being",
+        "below",
+        "between",
+        "both",
+        "but",
+        "by",
+        "can",
+        "could",
+        "did",
+        "do",
+        "does",
+        "doing",
+        "down",
+        "during",
+        "each",
+        "few",
+        "for",
+        "from",
+        "further",
+        "had",
+        "has",
+        "have",
+        "having",
+        "he",
+        "her",
+        "here",
+        "hers",
+        "him",
+        "his",
+        "how",
+        "i",
+        "if",
+        "in",
+        "into",
+        "is",
+        "it",
+        "its",
+        "itself",
+        "just",
+        "me",
+        "more",
+        "most",
+        "my",
+        "no",
+        "nor",
+        "not",
+        "of",
+        "off",
+        "on",
+        "once",
+        "only",
+        "or",
+        "other",
+        "our",
+        "ours",
+        "out",
+        "over",
+        "own",
+        "same",
+        "she",
+        "should",
+        "so",
+        "some",
+        "such",
+        "than",
+        "that",
+        "the",
+        "their",
+        "theirs",
+        "them",
+        "then",
+        "there",
+        "these",
+        "they",
+        "this",
+        "those",
+        "through",
+        "to",
+        "too",
+        "under",
+        "until",
+        "up",
+        "very",
+        "was",
+        "we",
+        "were",
+        "what",
+        "when",
+        "where",
+        "which",
+        "while",
+        "who",
+        "whom",
+        "why",
+        "will",
+        "with",
+        "would",
+        "you",
+        "your",
+        "yours",
+        "yes",
+        "may",
+        "might",
+        "must",
+        "shall",
+        "via",
+        "per",
+        "etc",
+        "use",
+        "used",
+        "using",
+        "one",
+        "two",
+        "get",
+        "got",
+        "make",
+        "made",
+        "like",
+        "well",
+        "really",
+    ]
 )
 _WORD_RE = re.compile(r"[a-z0-9]+(?:[.,][0-9]+)*%?", re.IGNORECASE)
 _SENT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\"'(\[])|\n+")
@@ -377,7 +524,11 @@ class GroundednessChecker:
             best_idx = max(range(len(per_src)), key=per_src.__getitem__)
             best_all = per_src[best_idx]
             best_cited = max((per_src[n - 1] for n in cited), default=None)
-            support = best_cited if best_cited is not None and best_cited >= p.claim_threshold else best_all
+            support = (
+                best_cited
+                if best_cited is not None and best_cited >= p.claim_threshold
+                else best_all
+            )
             miscited = (
                 best_cited is not None
                 and best_cited < p.claim_threshold
@@ -535,7 +686,9 @@ class OutputGuard:
 
         if not g.grounded:
             v.flags.append("ungrounded")
-            self._fail(v, attempt, f"{len(g.unsupported)} unsupported claim(s); score {g.score:.2f}")
+            self._fail(
+                v, attempt, f"{len(g.unsupported)} unsupported claim(s); score {g.score:.2f}"
+            )
         elif cc.invalid:
             self._fail(v, attempt, f"citations to unknown sources: {cc.invalid}")
         elif "uncited" in v.flags:
