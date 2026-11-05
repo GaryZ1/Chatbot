@@ -20,7 +20,7 @@ import re
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, ClassVar, Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
 
@@ -397,7 +397,7 @@ class PresidioDetector:
 
     name = "presidio"
 
-    _TYPE_MAP: dict[str, PIIType] = {
+    _TYPE_MAP: ClassVar[dict[str, PIIType]] = {
         "EMAIL_ADDRESS": PIIType.EMAIL,
         "PHONE_NUMBER": PIIType.PHONE,
         "CREDIT_CARD": PIIType.CREDIT_CARD,

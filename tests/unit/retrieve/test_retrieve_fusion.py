@@ -71,7 +71,7 @@ def test_cutoffs() -> None:
     hits = [sc("a", 0.95), sc("b", 0.9), sc("c", 0.88), sc("d", 0.2), sc("e", 0.1)]
     assert [h.chunk.chunk_id for h in score_gap_cutoff(hits)] == ["a", "b", "c"]
     assert score_gap_cutoff(hits, threshold=0.99) == []
-    assert len(score_gap_cutoff(hits, min_k=4)) == 5 or len(score_gap_cutoff(hits, min_k=4)) == 4
+    assert len(score_gap_cutoff(hits, min_k=4)) == 5
     assert len(score_gap_cutoff(hits, max_k=2)) == 2
     long = [sc("x", 1, text="word " * 50), sc("y", 0.5, text="word " * 50)]
     assert len(token_budget_cutoff(long, 60)) == 1

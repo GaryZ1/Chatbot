@@ -206,7 +206,7 @@ class MetricsRegistry:
         with self._lock:
             m = self._metrics.get(full)
             if m is None:
-                m = cls(full, help, **kw)  # type: ignore[arg-type]
+                m = cls(full, help, **kw)
                 self._metrics[full] = m
             if not isinstance(m, cls):
                 raise TypeError(f"metric {full} already registered as {type(m).__name__}")

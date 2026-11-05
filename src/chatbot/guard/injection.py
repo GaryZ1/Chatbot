@@ -386,7 +386,7 @@ class InjectionDetector:
         llm_score = judgement.confidence if judgement.is_injection else 1.0 - judgement.confidence
         # The LLM decides inside the borderline band; keep the heuristic as a floor
         # for strong rule hits so a manipulated classifier cannot clear them.
-        lo, hi = self.policy.llm_band
+        _, hi = self.policy.llm_band
         combined = llm_score if result.score < hi else max(result.score, llm_score)
         result.signals["llm_score"] = round(llm_score, 4)
         result.score = round(combined, 4)

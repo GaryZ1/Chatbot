@@ -415,9 +415,9 @@ def traced(name: str | None = None) -> Callable[[Callable[P, R]], Callable[P, R]
             async def awrapper(*args: P.args, **kwargs: P.kwargs) -> Any:
                 t = current_trace()
                 if t is None:
-                    return await fn(*args, **kwargs)  # type: ignore[misc]
+                    return await fn(*args, **kwargs)
                 with t.span(span_name):
-                    return await fn(*args, **kwargs)  # type: ignore[misc]
+                    return await fn(*args, **kwargs)
 
             return cast(Callable[P, R], awrapper)
 

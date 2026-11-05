@@ -35,10 +35,13 @@ def score_gap_cutoff(
     ranked = sorted(hits, key=lambda h: -h.score)
     if threshold is not None:
         ranked = [h for h in ranked if h.score >= threshold]
+    if not ranked:
+        return []
+    # The gap scale is the score range of the whole candidate list, not of the cut.
+    span = ranked[0].score - ranked[-1].score
     ranked = ranked[:max_k]
     if len(ranked) <= max(min_k, 1):
         return ranked
-    span = ranked[0].score - ranked[-1].score
     out = [ranked[0]]
     for prev, cur in itertools.pairwise(ranked):
         gap = prev.score - cur.score
