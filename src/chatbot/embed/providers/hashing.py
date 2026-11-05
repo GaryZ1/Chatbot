@@ -1,7 +1,7 @@
 """Dependency-free deterministic embedder (test / offline default).
 
 Implements the *feature hashing* trick over a TF-IDF-like bag of features:
-word unigrams, word bigrams and character n-grams of each word (with boundary
+word unigrams, light word stems, word bigrams and character n-grams of each word (with boundary
 markers so prefixes/suffixes are distinguishable). Each feature is hashed with
 BLAKE2b into one of ``dim`` buckets with a ±1 sign (signed hashing keeps collisions
 unbiased), weighted by sublinear term frequency ``1 + log(tf)`` and a static
@@ -97,6 +97,19 @@ STOPWORDS: frozenset[str] = frozenset(
 )
 
 
+_STEM_SUFFIXES = ("ing", "ies", "ed", "es", "s")
+
+
+def _stem(word: str) -> str:
+    """Tiny suffix stripper so inflections share a feature ("refunds" ~ "refund")."""
+    if len(word) <= 4 or any(ch.isdigit() for ch in word):
+        return word
+    for suf in _STEM_SUFFIXES:
+        if word.endswith(suf) and len(word) - len(suf) >= 3:
+            return word[: -len(suf)] + ("y" if suf == "ies" else "")
+    return word
+
+
 @lru_cache(maxsize=200_000)
 def _bucket(feature: str, dim: int) -> tuple[int, float]:
     digest = hashlib.blake2b(feature.encode("utf-8"), digest_size=8).digest()
@@ -146,6 +159,8 @@ class HashingEmbedder(BaseEmbedder):
         lo, hi = self.char_ngrams
         for w in words:
             feats["w:" + w] += 1
+            if w not in STOPWORDS:
+                feats["s:" + _stem(w)] += 1
             if w in STOPWORDS:
                 continue
             padded = f"<{w}>"
@@ -164,6 +179,8 @@ class HashingEmbedder(BaseEmbedder):
             if body in STOPWORDS:
                 return self.stopword_weight
             # IDF-ish prior: very short tokens are less informative, long ones (IDs) more.
+            return self.word_weight * min(1.5, 0.5 + len(body) / 6.0)
+        if kind == "s":
             return self.word_weight * min(1.5, 0.5 + len(body) / 6.0)
         if kind == "b":
             return self.bigram_weight

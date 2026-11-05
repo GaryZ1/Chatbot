@@ -32,6 +32,7 @@ from pydantic import BaseModel, Field
 
 from chatbot.core.types import Principal, Role, Turn, utcnow
 from chatbot.llm.base import LLM, LLMError, LLMRequest, Tier
+from chatbot.memory.long_term import screen_sensitive
 
 logger = logging.getLogger(__name__)
 
@@ -359,6 +360,10 @@ class ConversationMemory:
             if self.slot_names is not None and k not in self.slot_names:
                 continue
             if k not in session.slots and len(session.slots) >= self.max_slots:
+                continue
+            blocked = screen_sensitive(f"{k.replace('_', ' ')}: {v}")
+            if blocked:
+                logger.warning("refusing sensitive slot %s (%s)", k, blocked)
                 continue
             session.slots[k] = v
         return session.slots

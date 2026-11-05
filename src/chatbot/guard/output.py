@@ -235,14 +235,7 @@ def remove_invalid_citations(text: str, invalid: Sequence[int]) -> str:
 # --------------------------------------------------------------------------- groundedness
 
 _STOPWORDS = frozenset(
-    """a about above after again against all also am an and any are as at be because been
-    before being below between both but by can could did do does doing down during each few
-    for from further had has have having he her here hers him his how i if in into is it its
-    itself just me more most my no nor not of off on once only or other our ours out over own
-    same she should so some such than that the their theirs them then there these they this
-    those through to too under until up very was we were what when where which while who whom
-    why will with would you your yours yes may might must shall via per etc use used using
-    one two get got make made like well really""".split()
+    ["a", "about", "above", "after", "again", "against", "all", "also", "am", "an", "and", "any", "are", "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can", "could", "did", "do", "does", "doing", "down", "during", "each", "few", "for", "from", "further", "had", "has", "have", "having", "he", "her", "here", "hers", "him", "his", "how", "i", "if", "in", "into", "is", "it", "its", "itself", "just", "me", "more", "most", "my", "no", "nor", "not", "of", "off", "on", "once", "only", "or", "other", "our", "ours", "out", "over", "own", "same", "she", "should", "so", "some", "such", "than", "that", "the", "their", "theirs", "them", "then", "there", "these", "they", "this", "those", "through", "to", "too", "under", "until", "up", "very", "was", "we", "were", "what", "when", "where", "which", "while", "who", "whom", "why", "will", "with", "would", "you", "your", "yours", "yes", "may", "might", "must", "shall", "via", "per", "etc", "use", "used", "using", "one", "two", "get", "got", "make", "made", "like", "well", "really"]
 )
 _WORD_RE = re.compile(r"[a-z0-9]+(?:[.,][0-9]+)*%?", re.IGNORECASE)
 _SENT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\"'(\[])|\n+")

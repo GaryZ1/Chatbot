@@ -332,3 +332,11 @@ def run_sync(coro_factory: Any) -> Any:
     except RuntimeError:
         return asyncio.run(coro_factory())
     raise RuntimeError("this chunker is async; call 'await chunker.achunk(doc)' inside an event loop")
+
+
+async def achunk_any(chunker: Any, doc: Document) -> list[Chunk]:
+    """Chunk with ``achunk`` when the chunker has it, else the sync ``chunk``."""
+    fn = getattr(chunker, "achunk", None)
+    if fn is not None:
+        return list(await fn(doc))
+    return list(chunker.chunk(doc))

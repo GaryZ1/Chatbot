@@ -61,7 +61,8 @@ class QueryEmbeddingCache:
             self.stats.hits += 1
             return vec
 
-    def put(self, model_key: str, text: str, vector: np.ndarray) -> None:
+    def put(self, model_key: str, text: str, vector: np.ndarray) -> np.ndarray:
+        """Store a read-only copy of ``vector`` and return it."""
         vec = np.array(vector, dtype=np.float32, copy=True)
         vec.setflags(write=False)
         with self._lock:
@@ -69,6 +70,7 @@ class QueryEmbeddingCache:
             self._data.move_to_end((model_key, text))
             while len(self._data) > self.maxsize:
                 self._data.popitem(last=False)
+        return vec
 
     def clear(self) -> None:
         with self._lock:
@@ -97,7 +99,7 @@ class CachingEmbedder:
         casefold: bool = False,
     ) -> None:
         self.inner = inner
-        self.cache = cache or QueryEmbeddingCache()
+        self.cache = cache if cache is not None else QueryEmbeddingCache()
         self.casefold = casefold
         self.name = inner.name
         self._model_key = _model_key(inner)
@@ -125,10 +127,7 @@ class CachingEmbedder:
         fut: asyncio.Future[np.ndarray] = asyncio.get_running_loop().create_future()
         self._inflight[norm] = fut
         try:
-            vec = await self.inner.embed_query(norm)
-            self.cache.put(self._model_key, norm, vec)
-            result = self.cache.get(self._model_key, norm)
-            out = result if result is not None else vec
+            out = self.cache.put(self._model_key, norm, await self.inner.embed_query(norm))
             fut.set_result(out)
             return out
         except asyncio.CancelledError:

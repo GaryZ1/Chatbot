@@ -127,6 +127,7 @@ class Claim(BaseModel):
     indices: list[int] = Field(default_factory=list)
 
 
+_POST_PUNCT_MARKERS = re.compile(r"([.!?])[ \t]*((?:\[[\d,;\s\-\u2013]+\](?!\())+)")
 _NON_CLAIM = re.compile(r"^(?:#+\s|[-*]\s*$|not covered by the sources:?$)", re.IGNORECASE)
 
 
@@ -136,11 +137,14 @@ def split_claims(text: str) -> list[Claim]:
     A sentence consisting only of markers attaches them to the previous claim.
     """
     claims: list[Claim] = []
+    # "claim. [1] Next" → "claim [1]. Next" so markers stay with the sentence they follow.
+    text = _POST_PUNCT_MARKERS.sub(lambda m: f" {m.group(2)}{m.group(1)}", text)
     for sent in split_sentences(text):
         idx: list[int] = []
         for m in parse_markers(sent):
             idx.extend(m.indices)
         bare = " ".join(_MARKER_RE.sub(" ", sent).split()).strip()
+        bare = re.sub(r"\s+([.,;:!?])", r"\1", bare)
         if not re.search(r"\w", bare):
             if claims and idx:
                 claims[-1].indices = list(dict.fromkeys([*claims[-1].indices, *idx]))
