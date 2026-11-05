@@ -93,7 +93,7 @@ async def test_runner_funnel_and_fcodes():
     assert res.funnel["gold_in_final"] == pytest.approx(0.5)
     allm = res.aggregate["all"]
     assert allm["error_rate"] == pytest.approx(1 / 7)
-    assert allm["abstention_accuracy"] == pytest.approx(5 / 6)
+    assert allm["abstention_accuracy"] == pytest.approx(4 / 6)  # "miss" over-refused, "halluc" answered
     assert allm["latency_p95_ms"] == pytest.approx(100.0)
     assert res.latency["retrieve"]["p50"] == pytest.approx(10.0)
     assert res.slice_sizes["unanswerable"] == 2
