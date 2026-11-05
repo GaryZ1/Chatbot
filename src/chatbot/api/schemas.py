@@ -7,6 +7,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from chatbot.core.types import AnswerStatus, Citation
+from chatbot.ops.feedback import Rating, ReasonCode
 
 
 class ChatRequest(BaseModel):
@@ -27,11 +28,11 @@ class ChatResponse(BaseModel):
 
 
 class FeedbackRequest(BaseModel):
-    trace_id: str
-    session_id: str | None = None
-    rating: int = Field(ge=-1, le=1)  # -1 thumbs down, 1 thumbs up
-    reason: str | None = Field(default=None, max_length=64)
-    comment: str | None = Field(default=None, max_length=2000)
+    trace_id: str = Field(min_length=1, max_length=64)
+    rating: Rating
+    reasons: list[ReasonCode] = Field(default_factory=list, max_length=10)
+    comment: str = Field(default="", max_length=4000)
+    correction: str = Field(default="", max_length=4000)
 
 
 class IngestRequest(BaseModel):
@@ -45,10 +46,5 @@ class IngestResponse(BaseModel):
     deleted: int
     skipped: int
     chunks: int
-
-
-class MemoryItem(BaseModel):
-    id: str
-    text: str
-    created_at: str | None = None
-    updated_at: str | None = None
+    quarantined: list[str] = Field(default_factory=list)
+    failed: dict[str, str] = Field(default_factory=dict)

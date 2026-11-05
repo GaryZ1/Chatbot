@@ -137,3 +137,11 @@ def test_source_record_decoding() -> None:
     r = SourceRecord(doc_id="d", uri="file:///x.txt", content=b"ok \xff")
     assert r.as_text() == "ok �"
     assert r.extension == ".txt"
+
+
+def test_glob_double_star_matches_root_files():
+    from chatbot.ingest.connectors import _glob_match
+
+    assert _glob_match("a.md", "**/*.md")
+    assert _glob_match("x/y/a.md", "**/*.md")
+    assert not _glob_match("a.txt", "**/*.md")

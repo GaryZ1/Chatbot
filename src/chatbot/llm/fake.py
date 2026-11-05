@@ -8,6 +8,7 @@ structured-output code paths are exercised exactly as in production.
 from __future__ import annotations
 
 import json
+import re
 from collections import deque
 from collections.abc import AsyncIterator, Callable, Iterable
 
@@ -66,3 +67,20 @@ class FakeLLM(LLM):
             return schema.model_validate(json.loads(text))
         except (json.JSONDecodeError, ValueError) as exc:
             raise LLMError(f"fake structured output invalid for {schema.__name__}: {exc}") from exc
+
+
+_SOURCE_RE = re.compile(r'<source id="(\d+)"[^>]*>\s*(.*?)</source>', re.S)
+
+
+def extractive_handler(request: LLMRequest) -> str:
+    """Offline stand-in for generation used by CI: answers with the first sentence of
+    source [1] and cites it; abstains when there are no sources. Structured-output
+    calls receive non-JSON and therefore exercise every component's LLM-failure fallback.
+    """
+    text = last_user_text(request)
+    m = _SOURCE_RE.search(text)
+    if not m:
+        return "I don't know based on the available sources."
+    body = re.sub(r"\s+", " ", m.group(2)).strip()
+    sentence = re.split(r"(?<=[.!?])\s", body, maxsplit=1)[0][:400]
+    return f"{sentence} [{m.group(1)}]"

@@ -1,0 +1,10 @@
+# Offline, deterministic configuration for CI and the regression gate: no network.
+pipeline_version: ci
+llm: {provider: fake}
+ingest: {default_public: true}
+enrichment: {contextual: false}
+embedding: {name: hashing, params: {dim: 512}}
+index: {path: .ci/index}
+guard: {enabled: true, llm_judge: false}
+ops: {semantic_cache: false, rate_per_s: 1000, burst: 1000}
+obs: {trace_path: null, feedback_path: null}

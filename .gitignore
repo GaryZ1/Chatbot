@@ -10,3 +10,6 @@ build/
 .env
 data/index/
 eval/reports/*.json
+.ci/
+data/traces.jsonl
+data/feedback.jsonl

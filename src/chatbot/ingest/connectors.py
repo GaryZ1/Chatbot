@@ -186,6 +186,15 @@ class Connector(Protocol):
 AclResolver = Callable[[Path], ACL | None]
 
 
+def _glob_match(rel: str, pattern: str) -> bool:
+    """``fnmatch`` where a leading ``**/`` also matches files at the root."""
+    if pattern in ("**/*", "*", "**"):
+        return True
+    if fnmatch.fnmatch(rel, pattern):
+        return True
+    return pattern.startswith("**/") and fnmatch.fnmatch(rel, pattern[3:])
+
+
 class FilesystemConnector:
     """Crawl a directory tree (docs/01 §1).
 
@@ -241,9 +250,9 @@ class FilesystemConnector:
             return False
         if any(part.startswith(".") for part in rel.split("/")):
             return False
-        if not any(fnmatch.fnmatch(rel, pat) or pat in ("**/*", "*") for pat in self.include):
+        if not any(_glob_match(rel, pat) for pat in self.include):
             return False
-        return not any(fnmatch.fnmatch(rel, pat) for pat in self.exclude)
+        return not any(_glob_match(rel, pat) for pat in self.exclude)
 
     def _iter_files(self) -> list[Path]:
         out: list[Path] = []

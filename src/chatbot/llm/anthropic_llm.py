@@ -174,7 +174,7 @@ class AnthropicLLM(LLM):
         parsed = getattr(msg, "parsed_output", None)
         if parsed is None:
             raise LLMError(f"structured output missing (stop_reason={msg.stop_reason})")
-        return parsed  # type: ignore[no-any-return]
+        return parsed
 
     async def aclose(self) -> None:
         await self._client.close()

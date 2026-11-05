@@ -1,0 +1,61 @@
+# Production defaults (docs/16-build-plan.md target stack). Override any key with
+# CHATBOT__<SECTION>__<KEY>=value, e.g. CHATBOT__RETRIEVAL__FINAL_K=10
+pipeline_version: v1
+
+llm:
+  provider: anthropic          # reads ANTHROPIC_API_KEY (or an `ant auth login` profile)
+  models: {small: claude-haiku-5-5, mid: claude-opus-5-5, frontier: claude-opus-5-5}
+  effort: {small: low, mid: medium, frontier: high}
+
+ingest:
+  include: ["**/*.md", "**/*.txt", "**/*.html", "**/*.pdf"]
+  default_acl_groups: [employees]   # per-file overrides via <file>.acl.json sidecars
+  tenant_id: default
+
+chunking:
+  method: default                   # structure-aware 512-token children + 1500-token parents
+  params: {max_tokens: 512, parent_max_tokens: 1500}
+
+enrichment:
+  contextual: true                  # Anthropic contextual retrieval (1 small-model call / chunk)
+  questions: false
+  glossary:
+    PTO: [paid time off, vacation]
+    MFA: [multi-factor authentication, 2FA]
+
+embedding:
+  name: hashing                     # swap for st:Qwen/Qwen3-Embedding-0.6B or voyage:voyage-3-large
+  params: {dim: 768}
+
+index:
+  backend: memory                   # or qdrant (set qdrant_url)
+  path: data/index
+
+retrieval:
+  leg_k: 100
+  candidates: 50
+  final_k: 8
+  parent_expansion: true
+
+rerank:
+  method: lexical                   # cross_encoder | llm | cascade in production
+  abstain_threshold: 0.05           # calibrate with chatbot.rerank.fit_threshold on the dev set
+
+generation:
+  max_context_tokens: 8000
+  assistant_name: Policy Assistant
+  audience: employees
+
+guard:
+  enabled: true
+  allowed_domains: [example.com]
+  llm_judge: true
+
+ops:
+  semantic_cache: true
+  rate_per_s: 2
+  burst: 10
+
+obs:
+  trace_path: data/traces.jsonl
+  feedback_path: data/feedback.jsonl

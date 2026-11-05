@@ -1,0 +1,10 @@
+# CI regression gate (docs/12-evaluation.md §5). CI runs with the offline fake LLM, so
+# it gates the retrieval funnel with absolute floors; add `max_drop` rules against a
+# stored baseline (--baseline eval/reports/<baseline>.json) once one is committed.
+gate:
+  rules:
+    - {metric: recall@10, min_value: 0.9}
+    - {metric: recall@5, min_value: 0.85}
+    - {metric: ndcg@10, min_value: 0.8}
+    - {metric: mrr, min_value: 0.8}
+  max_error_rate: 0.0

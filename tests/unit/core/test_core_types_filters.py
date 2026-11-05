@@ -7,7 +7,9 @@ from chatbot.core.types import Block, BlockType, Document, sha256_text
 
 
 def _chunk(**kw):
-    base = dict(chunk_id="c1", doc_id="d1", text="hello", tenant_id="t1", acl=ACL(allow_groups=["eng"]))
+    base = dict(
+        chunk_id="c1", doc_id="d1", text="hello", tenant_id="t1", acl=ACL(allow_groups=["eng"])
+    )
     base.update(kw)
     return Chunk(**base)
 

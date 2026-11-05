@@ -164,7 +164,9 @@ class Chunk(BaseModel):
         return self.embed_text or self.text
 
     @staticmethod
-    def make_id(doc_id: str, version: str, position: int, kind: str = "chunk", salt: str = "") -> str:
+    def make_id(
+        doc_id: str, version: str, position: int, kind: str = "chunk", salt: str = ""
+    ) -> str:
         raw = f"{doc_id}|{version}|{kind}|{position}|{salt}"
         return hashlib.sha256(raw.encode()).hexdigest()[:24]
 

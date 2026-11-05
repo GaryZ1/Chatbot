@@ -76,8 +76,12 @@ class LLMRequest(BaseModel):
     metadata: dict[str, str] = Field(default_factory=dict)
 
     @classmethod
-    def simple(cls, prompt: str, *, system: str = "", tier: Tier = Tier.MID, **kw: Any) -> LLMRequest:
-        return cls(messages=[LLMMessage(role="user", content=prompt)], system=system, tier=tier, **kw)
+    def simple(
+        cls, prompt: str, *, system: str = "", tier: Tier = Tier.MID, **kw: Any
+    ) -> LLMRequest:
+        return cls(
+            messages=[LLMMessage(role="user", content=prompt)], system=system, tier=tier, **kw
+        )
 
 
 class LLMResponse(BaseModel):

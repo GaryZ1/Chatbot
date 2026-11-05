@@ -69,3 +69,72 @@ Each module ends with **"Expert checks"** and a **"Deep dive"** section: interna
 ```
 
 **Iron law:** if the right evidence never reaches the context window, no LLM can save you. If it does reach the window, most modern LLMs will use it, *provided the context is short, well ordered, and clean*.
+
+---
+
+## The code: every module implemented in `src/chatbot/`
+
+| Doc | Package | What's implemented |
+|---|---|---|
+| 00 | `core/`, `pipeline.py`, `ingestion.py` | Canonical types, ACL/filter DSL, F1–F15 failure taxonomy + funnel diagnosis; both planes wired end to end |
+| 01 | `ingest/` | Filesystem connector (incremental sync, tombstones, ACL sidecars), Markdown/HTML/text/email/code/PDF/Docling parsers, cleaning, parse-quality scoring, exact + MinHash near-dup |
+| 02 | `chunking/` | Fixed, sentence, paragraph, sliding, page, recursive, structure-aware, semantic, parent-child, sentence-window, proposition, late, code-AST, table, RAPTOR; `default_chunker()` recipe |
+| 03 | `enrich/` | Contextual retrieval (cached whole-doc prefix), hypothetical questions, rule + LLM metadata, summaries, glossary; versioned `Enricher` |
+| 04 | `embed/` | Embedder base (query prefixes, normalisation), hashing / sentence-transformers / Voyage, query cache, int8 / binary + rescoring, Matryoshka |
+| 05 | `index/` | In-memory vector store, BM25F, Qdrant store (ACL inside the query), schema, blue/green aliases, idempotent `IndexWriter`, parent doc store |
+| 06 | `query/` | One structured query-understanding call, router, condensing, rewrite, HyDE, multi-query, decomposition, step-back, validated self-query filters |
+| 07 | `retrieve/` | Dense, sparse, parallel hybrid, RRF / weighted / convex fusion, MMR, neighbour + parent expansion, boosts, dynamic K |
+| 08 | `rerank/` | Lexical, cross-encoder, LLM pointwise / listwise, cascade, business priors, abstention-threshold calibration, context post-processing |
+| 09 | `agent/` | Tool-using agentic RAG (budgets, loop detection), CRAG, HippoRAG-style PPR graph retrieval, deep research |
+| 10 | `generate/` | Cache-friendly prompts, budgeted XML context builder, streaming answer generator, citation parsing + verification, compression |
+| 11 | `memory/` | Sessions (window + running summary + slots; in-memory / Redis), long-term memory with user controls and a PII screen |
+| 12 | `evaluation/` | Golden sets with frozen splits, retrieval + generation metrics, calibrated LLM judges, bootstrap CIs, runner + funnel, reports, CI gate, synthetic data |
+| 13 | `guard/` | PII / secret redaction, prompt-injection detection (direct + retrieved chunks), input / output guards, groundedness, exfiltration-safe markdown, ACL matrix, poisoning scan |
+| 14 | `obs/`, `ops/` | Redacted tracing + replay, metrics + cost, permission-scoped semantic cache, rate limits / budgets, feedback → golden candidates, freshness SLO |
+| 16 | `config.py`, `build.py`, `api/`, `cli.py`, `configs/`, CI | Config-driven assembly, FastAPI service, CLI, Docker, GitHub Actions with the eval gate |
+
+### Quick start
+
+```bash
+pip install -e ".[dev,anthropic,api]"
+```
+
+```bash
+export ANTHROPIC_API_KEY=...   # or `ant auth login`
+```
+
+```bash
+chatbot --config configs/pipeline.yaml ingest data/sample_corpus
+```
+
+```bash
+chatbot --config configs/pipeline.yaml ask -q "How long do refunds take by credit card?"
+```
+
+```bash
+chatbot --config configs/pipeline.yaml serve --port 8000
+```
+
+```bash
+curl -s localhost:8000/v1/chat -H 'X-User-Id: alice' -H 'X-User-Groups: employees' \
+  -H 'content-type: application/json' -d '{"message": "What is the PTO carry-over limit?"}'
+```
+
+Offline (no API key; deterministic fake LLM) evaluation and gate, as run in CI:
+
+```bash
+chatbot --config configs/ci.yaml eval --dataset eval/datasets/golden_dev.jsonl eval/datasets/unanswerable.jsonl eval/datasets/adversarial.jsonl --gate configs/eval_gate.yaml
+```
+
+Tests, lint and types:
+
+```bash
+make lint type test
+```
+
+**Models:** generation and agentic routes use Claude Opus 5.5 (`claude-opus-5-5`); routing, condensing,
+grading and enrichment use Claude Haiku 5.5 (`claude-haiku-5-5`). Both are configurable in `configs/pipeline.yaml`.
+
+**Auth:** the API trusts identity headers from an authenticating gateway (`CHATBOT_AUTH_MODE=gateway`,
+protect with `CHATBOT_GATEWAY_SECRET`), or uses static API keys (`CHATBOT_AUTH_MODE=api_key`,
+`CHATBOT_API_KEYS`). Group memberships drive the ACL pre-filter on every retrieval leg.

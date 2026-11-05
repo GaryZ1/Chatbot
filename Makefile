@@ -18,10 +18,10 @@ test:
 	pytest
 
 ingest:
-	chatbot ingest --config configs/pipeline.yaml data/sample_corpus
+	chatbot --config configs/pipeline.yaml ingest data/sample_corpus
 
 eval:
-	chatbot eval --config configs/ci.yaml --dataset eval/datasets/golden_dev.jsonl --gate configs/eval_gate.yaml
+	chatbot --config configs/ci.yaml eval --dataset eval/datasets/golden_dev.jsonl eval/datasets/unanswerable.jsonl eval/datasets/adversarial.jsonl --gate configs/eval_gate.yaml --out .ci/reports
 
 serve:
 	uvicorn chatbot.api.app:create_app --factory --reload --port 8000
