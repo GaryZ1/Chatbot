@@ -64,3 +64,20 @@ Figures are **as reported by the companies or authors**. Treat them as direction
 - Unique.ai GraphRAG research: <https://docs.unique.ai/administrators/research/rag-evaluations/graph-based-rag-research>
 - GraphRAG vs. agentic benchmark: <https://arxiv.org/abs/2604.09666>
 - Morgan Stanley, Uber Genie, Klarna, Air Canada: public company blog posts, press releases, and tribunal decision (search the titles above; figures as reported).
+
+---
+
+# Deep dive: mapping each case study to the pipeline
+
+| Case | Parsing / chunking | Retrieval | Quality control | Main lever |
+|---|---|---|---|---|
+| LinkedIn | Tickets → section trees (LLM + rules) | Entity/intent parse → subgraph retrieval + embeddings | Offline MRR/BLEU-style + production A/B on resolution time | **Domain structure** (Modules 02, 03, 09) |
+| DoorDash | KB articles + resolved cases | Conversation summary → similarity search | Two-tier guardrail + LLM judge + human sampling | **Guardrails + continuous judging** (12, 13) |
+| Merck | Heterogeneous R&D documents, 50k+ | Production RAG pipeline | Custom evaluation framework | **Ingestion + evaluation** (01, 12) |
+| NVIDIA FACTS | Metadata-aware chunking | Hybrid search | Testing as a first-class dimension | **Ops: freshness, testing, security** (14) |
+| Morgan Stanley | Curated research corpus | Retrieval over ~100k documents | SME-graded evaluation suites | **Expert evaluation → trust** (12) |
+| Uber Genie | Wikis, Q&A, runbooks | RAG → agentic RAG | User feedback in Slack | **Distribution channel + feedback** (11, 14) |
+| Klarna | Policies, order data (tools) | RAG + tool calls | Business metrics (CSAT, resolution) | **Measure resolution quality, keep humans** |
+| Air Canada | — | — | None effective | **Grounding + freshness are legal duties** (10, 13) |
+
+**Exercise:** for your own use case, fill in this row before writing code.

@@ -66,3 +66,95 @@
 - What is Matryoshka representation learning and why does it make binary + rescoring practical?
 - Why can MTEB rank mislead you, and what does RTEB change?
 - How do you mine hard negatives without poisoning training with false negatives?
+
+---
+
+# Deep dive: how embedding models are built and used
+
+## A. The anatomy of an embedding model
+```
+"query: how do i reset mfa"
+   │ 1. Tokenizer (WordPiece / BPE / SentencePiece) → token IDs [101, 2129, 2079, ...]
+   ▼
+   2. Transformer backbone (encoder: BERT/XLM-R/ModernBERT, or decoder LLM: Qwen/Mistral/Gemma)
+      → one contextual vector per token: H ∈ ℝ^{L × hidden}   (e.g. L=9, hidden=1024)
+   ▼
+   3. Pooling: collapse L token vectors into 1 vector
+      • CLS pooling      : take h_[CLS]                    (BGE, many BERT models)
+      • Mean pooling     : average all token vectors       (E5, MiniLM sentence-transformers, Nomic)
+      • Last-token / EOS : take the final token's vector   (decoder LLM embedders: Qwen3-Embedding, E5-mistral)
+                           (causal attention → only the last token has "seen" the whole text)
+      • Latent-attention : learned attention pooling       (NV-Embed)
+   ▼
+   4. (Optional) projection / Matryoshka truncation to the target dims
+   ▼
+   5. L2 normalization → unit vector, so dot product = cosine
+```
+
+**Mean pooling worked example:** three token vectors [1, 0, 2], [3, 2, 0], [2, 1, 1] → mean = [2, 1, 1] → norm = √6 = 2.449 → normalized = [0.816, 0.408, 0.408].
+
+## B. How they're trained (contrastive learning)
+1. **Stage 1, weakly supervised pre-training:** hundreds of millions to billions of naturally occurring pairs (title↔body, question↔answer from forums, query↔clicked page, caption↔image).
+2. **Stage 2, supervised fine-tuning:** high-quality labeled pairs (MS MARCO, NQ, HotpotQA, NLI, plus synthetic LLM-generated data) with **hard negatives**.
+3. **Instruction tuning:** prepend task instructions ("Instruct: Given a question, retrieve passages that answer it\nQuery: …").
+4. **Optional:** model merging, distillation from cross-encoder or LLM teachers, Matryoshka loss.
+
+**InfoNCE loss with in-batch negatives:**
+```
+L = − log  exp(sim(q, d⁺)/τ) / [ exp(sim(q, d⁺)/τ) + Σ_j exp(sim(q, d⁻_j)/τ) ]
+```
+τ (temperature) ≈ 0.01–0.05 sharpens the distribution. Every other document in the batch serves as a negative, so **bigger batches = more negatives = better models** (top models train with batches of thousands, using gradient caching).
+
+**Worked example:** τ = 0.05, sim(q,d⁺) = 0.80, two negatives at 0.60 and 0.50 →
+exp(16) = 8.886e6, exp(12) = 1.628e5, exp(10) = 2.203e4 → p = 8.886e6 / 9.071e6 = 0.980 → **L = 0.020**.
+If a hard negative were at 0.78: exp(15.6) = 5.956e6 → p = 8.886e6/(8.886e6 + 5.956e6 + 2.203e4) = 0.598 → **L = 0.515**. A hard negative creates a large gradient, which is why hard-negative mining matters so much.
+
+## C. Matryoshka Representation Learning (MRL)
+The training loss is summed over several prefix lengths (e.g. 64, 128, 256, 512, 1024 dims), so the **first n dimensions are a usable embedding by themselves**. In production: store 256 dims (4× less memory), and optionally rescore with the full 1024. Always **re-normalize after truncating**.
+Example: v = [0.6, 0.6, 0.4, 0.346] (unit length). Truncate to 2 dims → [0.6, 0.6] → norm 0.849 → [0.707, 0.707].
+
+## D. Quantization worked examples
+- **float32 → int8 (scalar):** per dimension, map the observed range [min, max] to [−128, 127]. With range [−0.12, 0.15], scale = 0.27/255 = 0.00106. The value 0.03 → round((0.03 + 0.12)/0.00106) − 128 = 141 − 128 = **13**. 4× smaller, typically ~1% retrieval loss.
+- **Binary:** keep only the sign: [0.12, −0.03, 0.40, −0.20] → **1 0 1 0**. Similarity = number of matching bits (Hamming). 1024 dims → 128 bytes (vs. 4096). Typical pattern: retrieve the top 200 with Hamming distance, **rescore** with int8/float32 vectors → recovers ~95%+ of quality.
+- **Product quantization:** see Module 05.
+
+## E. Symmetric vs. asymmetric, and prefixes
+| Model family | Query side | Document side |
+|---|---|---|
+| E5 | `"query: ..."` | `"passage: ..."` |
+| BGE (en v1.5) | `"Represent this sentence for searching relevant passages: ..."` | (none) |
+| Qwen3-Embedding / E5-mistral / NV-Embed | `"Instruct: {task}\nQuery: ..."` | (none) |
+| Nomic | `"search_query: ..."` | `"search_document: ..."` |
+| Cohere / Voyage / Jina APIs | `input_type="search_query"` / `"query"` / `task="retrieval.query"` | `"search_document"` / `"document"` / `"retrieval.passage"` |
+| OpenAI text-embedding-3 | none | none |
+
+Forgetting the prefix typically costs a few nDCG points, silently.
+
+## F. Model reference *(as of late 2026; verify on model cards and live leaderboards)*
+
+| Model | Type / backbone | Params | Dims (MRL) | Max tokens | License | Notes |
+|---|---|---|---|---|---|---|
+| all-MiniLM-L6-v2 | Encoder, mean pool | 22M | 384 | 256 | Apache-2.0 | Prototyping only |
+| bge-base/large-en-v1.5 | Encoder, CLS | 110M / 335M | 768 / 1024 | 512 | MIT | Solid English baselines |
+| **BGE-M3** | XLM-R-large | 568M | 1024 + sparse + multi-vector | 8192 | MIT | One model, three retrieval modes, 100+ languages |
+| multilingual-e5-large(-instruct) | XLM-R-large | 560M | 1024 | 512 | MIT | Multilingual workhorse |
+| e5-mistral-7b-instruct | Mistral-7B, last token | 7B | 4096 | 4k–32k | MIT | Early LLM embedder |
+| NV-Embed-v2 | Mistral-7B + latent attention | 7B | 4096 | 32k | Non-commercial | Topped MTEB in 2024 |
+| **Qwen3-Embedding-0.6B / 4B / 8B** | Qwen3 decoder, last token | 0.6–8B | up to 1024 / 2560 / 4096 (MRL) | 32k | Apache-2.0 | Instruction-aware; open-weight leader in 2026 |
+| gte-Qwen2-7B-instruct | Qwen2 decoder | 7B | 3584 | 32k | Apache-2.0 | |
+| jina-embeddings-v3 | XLM-R + task LoRA adapters | 570M | 1024 (MRL to 32) | 8192 | CC-BY-NC | Late-chunking friendly |
+| jina-embeddings-v4 | Qwen2.5-VL | ~3.8B | 2048 single + 128 multi-vector | 32k | Non-commercial (check) | Text + images |
+| nomic-embed-text-v1.5 / v2-moe | Encoder / MoE | 137M / 475M | 768 (MRL) | 8192 / 512 | Apache-2.0 | Fully open data |
+| snowflake-arctic-embed-l-v2.0 | XLM-R-large | 568M | 1024 (MRL) | 8192 | Apache-2.0 | Multilingual retrieval |
+| ModernBERT-based embedders (gte-modernbert, etc.) | ModernBERT | 150–400M | 768–1024 | 8192 | Apache-2.0 | Fast long-context encoders |
+| OpenAI text-embedding-3-small / large | API | n/a | 1536 / 3072 (`dimensions` param) | 8191 | Commercial | Widely deployed |
+| Google gemini-embedding-001 | API | n/a | 3072 (MRL 768/1536) | 2048 | Commercial | Top multilingual API |
+| Cohere Embed v4 | API, multimodal | n/a | 256–1536 (MRL), int8/binary | 128k | Commercial | Text + images, long docs |
+| Voyage-3-large / voyage-4 family | API | n/a | 256–2048, int8/binary | 32k | Commercial | Retrieval-focused; code/law/finance variants |
+| ColBERTv2 / ColPali | Multi-vector | 110M / 3B | 128 per token/patch | 512 / image | MIT / Gemma | See Modules 08, 09 |
+
+**How to read a model card in 60 seconds:** pooling method, required prefix, max length, dims (and MRL support), training data languages, license, retrieval nDCG on the closest public task to yours, and whether the inference library is supported (sentence-transformers, TEI, vLLM, Infinity).
+
+## G. Serving
+- **Hugging Face Text Embeddings Inference (TEI)**, **Infinity**, **vLLM** (`--task embed`), Triton/ONNX. Use fp16/bf16, dynamic batching, and sort inputs by length to cut padding.
+- Throughput rule of thumb: small encoders do thousands of chunks/s per GPU; 7–8B LLM embedders do tens to hundreds/s. Budget re-embedding time accordingly (10M chunks at 200/s ≈ 14 GPU-hours).

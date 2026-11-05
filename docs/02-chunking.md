@@ -214,3 +214,84 @@ Each method below has: *what it is → purpose → how → pros → cons → whe
 - Contextual retrieval vs. late chunking: which helps BM25, which costs LLM calls, which needs token-level embeddings?
 - Why must chunking comparisons be normalized by context tokens rather than by K?
 - When does proposition indexing hurt?
+
+---
+
+# Deep dive: worked examples for the main chunkers
+
+## A. Recursive splitter trace
+Settings: max 60 characters, separators `["\n\n", "\n", ". ", " "]`.
+```
+Text: "Refund policy.\n\nCustomers may request a refund within 30 days. Refunds go to the original card. Gift cards are non-refundable."
+Step 1 split on "\n\n" → ["Refund policy.", "Customers may request ... non-refundable." (>60 chars)]
+Step 2 piece 2 > 60 → split on "\n" (none) → split on ". " →
+       ["Customers may request a refund within 30 days.", "Refunds go to the original card.", "Gift cards are non-refundable."]
+Step 3 greedily MERGE adjacent pieces while ≤ 60 chars:
+       chunk1 "Refund policy."                                   (a heading alone: a structure-aware chunker would attach it to the next chunk)
+       chunk2 "Customers may request a refund within 30 days."   (47)
+       chunk3 "Refunds go to the original card. Gift cards are non-refundable." (63 > 60 → cannot merge) → two chunks
+```
+Lesson: recursive splitting respects sentences, but **orphans the heading**. A structure-aware chunker instead emits `"Refund policy > Customers may request…"`.
+
+## B. Semantic chunking trace
+Sentences S1–S6. Cosine *distance* (1 − cos) between consecutive sentence embeddings:
+```
+S1–S2 0.12   S2–S3 0.15   S3–S4 0.62   S4–S5 0.10   S5–S6 0.55
+```
+Threshold = 0.50 (a fixed value here; in practice often a percentile of the document's own distances): split where distance > threshold → after **S3** and after **S5** → chunks {S1,S2,S3}, {S4,S5}, {S6}.
+Problems you can see right away: {S6} is a single sentence (needs a min-size merge), and the threshold changes with every document (percentile-based).
+
+## C. Parent-child retrieval example
+```
+Parent P7 (Section "4.2 Carry-over", 1,100 tokens)
+  ├─ child c7.1 "Up to 5 unused PTO days roll over..."   (110 tokens)  ← embedded
+  ├─ child c7.2 "Rollover days expire on March 31..."     (95 tokens)   ← embedded
+  └─ child c7.3 "Exceptions: California employees..."     (120 tokens)  ← embedded
+Query "Do my rolled-over PTO days expire?" → best match c7.2 → return P7 (complete rules + exceptions).
+If c7.1 and c7.3 also match → dedupe → P7 once.
+AutoMerging: if ≥ 50% of a parent's children are retrieved → replace them with the parent.
+```
+
+## D. Contextual retrieval: before vs. after
+```
+RAW CHUNK:        "Revenue grew 3% over the previous quarter."
+CONTEXTUALIZED:   "This chunk is from ACME Corp's Q2 2023 10-Q filing, in the MD&A section on
+                   EMEA revenue; the previous quarter's EMEA revenue was $314M.
+                   Revenue grew 3% over the previous quarter."
+Query: "ACME EMEA revenue growth Q2 2023"
+  raw chunk      → BM25 matches only "revenue", "grew"; dense ≈ generic finance → rank 37
+  contextualized → BM25 matches ACME, EMEA, Q2, 2023; dense specific        → rank 2
+```
+
+## E. Late chunking mechanics
+```
+Naive:  embed(chunk_i) separately → chunk 3 "Its population is 3.6M" doesn't know "it" = Berlin
+Late:   tokens of the WHOLE document → long-context encoder → token vectors t_1..t_N
+        (attention lets chunk 3's tokens absorb "Berlin" from chunk 1)
+        chunk_i vector = mean(t_start_i .. t_end_i)   → then L2-normalize
+```
+Requirements: a long-context model that exposes **token-level outputs** (e.g. jina-embeddings-v3 with `late_chunking=True`, or self-hosted models that return hidden states). Documents longer than the model window are processed in overlapping macro-windows ("long late chunking").
+
+## F. Proposition example
+```
+Passage: "The Eiffel Tower, completed in 1889, is 330 m tall. It was the tallest structure until 1930."
+Propositions:
+  1. The Eiffel Tower was completed in 1889.
+  2. The Eiffel Tower is 330 meters tall.
+  3. The Eiffel Tower was the tallest man-made structure in the world until 1930.
+```
+Each proposition is self-contained ("It" → "The Eiffel Tower") and embeds precisely.
+
+## G. Chunk-size rules of thumb by query type
+| Query type | Retrieval unit | Context unit |
+|---|---|---|
+| Factoid ("what's the limit?") | 100–256 tokens / propositions | Parent ≤ 1k |
+| Procedural ("how do I…") | Section / steps list, 300–800 | Whole section |
+| Analytical ("why did margin drop?") | 512–1024 | Multiple sections or pages |
+| Summarization / thematic | Summaries (RAPTOR / GraphRAG) | Summaries + samples |
+
+## H. Chunking evaluation metric: token IoU (Chroma)
+For a query with relevant excerpt tokens **E** and retrieved chunk tokens **R**:
+`IoU = |E ∩ R| / |E ∪ R|`, `Precision = |E ∩ R| / |R|`, `Recall = |E ∩ R| / |E|`.
+Example: the excerpt is 80 tokens; you retrieve 3 chunks totaling 600 tokens that contain 72 of the excerpt tokens → recall 0.90, precision 0.12, IoU = 72/(80+600−72) = 72/608 = 0.118.
+High recall with low precision means you're wasting context budget: smaller chunks or reranking help.

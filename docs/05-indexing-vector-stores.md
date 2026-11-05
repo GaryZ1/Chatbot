@@ -62,3 +62,44 @@ collection: chunks_v3   (alias: chunks_live)
 - What do HNSW `M`, `ef_construction`, and `ef_search` each trade off?
 - Why can a highly selective metadata filter collapse HNSW recall, and how do engines mitigate it?
 - When would you pick DiskANN over HNSW?
+
+---
+
+# Deep dive: how ANN indexes work
+
+## A. HNSW (Hierarchical Navigable Small World)
+```
+Layer 2:   A ─────────────── K                       (few nodes, long-range links)
+Layer 1:   A ──── F ──── K ──── P                    (more nodes)
+Layer 0:   A─B─C─D─E─F─G─H─I─J─K─L─M─N─O─P ...        (ALL nodes, short-range links, ≤ 2M neighbors)
+```
+- **Insert:** each vector gets a random top layer (probability decays exponentially, like a skip list). On each layer it links to its `M` nearest neighbors, found with a beam search of width `ef_construction`.
+- **Search:** start at the entry point on the top layer → greedily move to the neighbor closest to the query → when there's no improvement, drop down a layer → on layer 0, run a beam search keeping the `ef_search` best candidates → return the top-k.
+- **Why it's fast:** about O(log N) hops. Upper layers act as "highways", layer 0 as "local streets".
+- **Memory:** vectors + about `M × 2 × 4 bytes` of links per node at layer 0. With 10M × 1024-d float32 (41 GB) plus links (~1.3 GB at M = 16), everything must sit in RAM, hence quantization.
+- **Knob example:** `ef_search` = 40 → recall@10 = 0.91 at 1.1 ms; 128 → 0.97 at 2.6 ms; 512 → 0.995 at 8 ms (illustrative). Pick the knee of the curve.
+- **Filtered search problem:** if a filter keeps only 0.5% of nodes, the greedy walk keeps hitting filtered-out nodes and the graph becomes "disconnected" for that query. Mitigations: engines switch to brute force below a selectivity threshold (Qdrant, Weaviate), filter-aware graph construction (ACORN, Qdrant payload-based subgraphs), or partitioning by tenant.
+
+## B. IVF (inverted file)
+1. Run k-means on the vectors → `nlist` centroids (e.g. √N to 4√N; 4,096 for 10M).
+2. Each vector is stored in the list of its nearest centroid.
+3. Query: find the `nprobe` nearest centroids (e.g. 16 of 4,096) → scan only those lists (~0.4% of the data).
+Trade-off: a bigger `nprobe` means higher recall and slower search. Vectors near cluster borders are the ones that get missed.
+
+## C. Product Quantization (PQ), worked example
+- 1024-d vector → split into **m = 64 sub-vectors** of 16 dims each.
+- For each sub-space, learn a codebook of **256 centroids** with k-means → each sub-vector is replaced by a 1-byte centroid ID.
+- Storage: 64 bytes per vector instead of 4,096 → **64× compression**.
+- Distance: precompute a 64 × 256 lookup table of (query sub-vector ↔ centroid) distances; the distance to any vector = the sum of 64 table lookups ("asymmetric distance computation"). Very fast.
+- Cost: approximation error → retrieve 10× candidates and **rescore** with the original vectors.
+
+## D. DiskANN (Vamana)
+A single-layer graph built with pruning that keeps long-range edges (parameter α > 1). Compressed PQ vectors live in RAM; the full vectors and the graph live on SSD. A search does a few dozen SSD reads. Serves billions of vectors from one machine with ~64–128 GB RAM.
+
+## E. Recall measurement script (always do this)
+```python
+gt   = flat_index.search(Q, k=10)          # exact ground truth
+ann  = hnsw_index.search(Q, k=10, ef=128)
+recall_at_10 = mean(len(set(a) & set(g)) / 10 for a, g in zip(ann, gt))
+```
+Measure it **with your production filters on**. Filtered recall is often much worse than unfiltered.

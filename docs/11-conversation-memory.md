@@ -40,3 +40,32 @@ Frameworks: Mem0, Letta (MemGPT), Zep/Graphiti (temporal knowledge graph memory)
 ## Expert checks
 - Why should retrieval use the condensed query while generation sees the raw recent turns?
 - How do you stop long-term memory from becoming a source of stale hallucinations?
+
+---
+
+# Deep dive: memory mechanics
+
+## A. Running-summary update
+```
+Every N turns (or when history > 3k tokens):
+  new_summary = LLM("Update the summary with the new turns. Keep: user goals, decided facts,
+                     entities (IDs, names, dates), open questions. Drop pleasantries.",
+                    old_summary, turns_since_last_summary)
+Prompt = system + new_summary + last 4 raw turns + retrieved sources + question
+```
+
+## B. Long-term memory write/read
+```
+After each session:  candidates = LLM.extract_facts(conversation)   # "prefers Python", "works in EMEA payroll"
+                     for f in candidates:
+                        existing = memory.search(f, top_k=3)
+                        op = LLM.decide(f, existing)   # ADD | UPDATE(existing_id) | DELETE(existing_id) | NOOP
+At query time:       mem = memory.search(standalone_query, user_id=u, top_k=5, min_score=τ)
+```
+The ADD/UPDATE/DELETE/NOOP pattern is used by Mem0-style systems. Temporal-graph memories (Zep/Graphiti) also store *when* each fact was valid, so "I moved to London" invalidates "lives in Berlin" instead of contradicting it.
+
+## C. Slot tracking example
+```json
+{"product": "Payments API", "environment": "sandbox", "error_code": "E1043", "order_id": null}
+```
+Follow-up "what about production?" updates `environment` only. The standalone query is built from the slots plus the new message.
