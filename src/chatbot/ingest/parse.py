@@ -38,7 +38,7 @@ from typing import Any, Protocol, runtime_checkable
 import yaml
 
 from chatbot.core.types import Block, BlockType, Document, ParseQuality
-from chatbot.ingest.clean import clean_document
+from chatbot.ingest.clean import clean_document, clean_email
 from chatbot.ingest.connectors import SourceRecord
 
 logger = logging.getLogger(__name__)
@@ -634,6 +634,8 @@ class EmailParser:
         if body_part is not None and body_part.get_content_type() == "text/html":
             blocks, _ = parse_html_blocks(body)
         else:
+            # strip quoted replies/signatures on the whole body, before paragraph splitting
+            body = clean_email(body)
             blocks = [
                 Block(type=BlockType.PARAGRAPH, text=p.strip())
                 for p in re.split(r"\n\s*\n", body)

@@ -7,12 +7,19 @@ import random
 import pytest
 
 from chatbot.core.types import Block, BlockType, Document
-from chatbot.ingest import Deduplicator, DedupStatus, MinHasher, NearDuplicateIndex, jaccard, shingles
+from chatbot.ingest import (
+    Deduplicator,
+    DedupStatus,
+    MinHasher,
+    NearDuplicateIndex,
+    jaccard,
+    shingles,
+)
 from chatbot.ingest.dedupe import optimal_bands
 
-random.seed(7)
+RNG = random.Random(7)
 VOCAB = [f"w{i}" for i in range(500)]
-BASE = " ".join(random.choice(VOCAB) for _ in range(800))
+BASE = " ".join(RNG.choice(VOCAB) for _ in range(800))
 
 
 def _doc(doc_id: str, text: str) -> Document:
@@ -34,7 +41,7 @@ def test_near_duplicate_detected_and_distinct_text_unique() -> None:
     near = d.check_text("copy", " ".join(words))
     assert near.status == DedupStatus.NEAR and near.duplicate_of == "orig"
     assert near.similarity >= 0.9
-    other = " ".join(random.choice(VOCAB) for _ in range(800))
+    other = " ".join(RNG.choice(VOCAB) for _ in range(800))
     assert d.check_text("other", other).status == DedupStatus.UNIQUE
 
 

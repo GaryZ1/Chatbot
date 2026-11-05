@@ -81,7 +81,9 @@ def test_markdown_blocks() -> None:
         "- Second retry after 24 hours with backoff",
     ]
     table = doc.blocks[4]
-    assert table.html is not None and "<th>Attempt</th>" in table.html and "<td>24h</td>" in table.html
+    assert (
+        table.html is not None and "<th>Attempt</th>" in table.html and "<td>24h</td>" in table.html
+    )
     assert table.text.splitlines()[0] == "| Attempt | Delay |"
     assert table.metadata["n_rows"] == 2
     code = doc.blocks[5]
@@ -124,7 +126,9 @@ def test_html_drops_boilerplate_and_keeps_structure() -> None:
     assert kinds[0] == (BlockType.HEADING, 1)
     assert (BlockType.HEADING, 2) in kinds
     para = next(b for b in doc.blocks if b.type == BlockType.PARAGRAPH)
-    assert para.text == "Payments are retried three\xa0times." or para.text.startswith("Payments are retried")
+    assert para.text == "Payments are retried three\xa0times." or para.text.startswith(
+        "Payments are retried"
+    )
     lst = next(b for b in doc.blocks if b.type == BlockType.LIST)
     assert lst.text.splitlines() == ["1. First", "2. Second", "  - Nested"]
     table = next(b for b in doc.blocks if b.type == BlockType.TABLE)
@@ -154,7 +158,9 @@ def test_email_parser_strips_quotes_and_signature() -> None:
         "Hi team,\r\n\r\nMy refund for order 42 has not arrived.\r\n\r\nBest regards,\r\nAlice\r\n\r\n"
         "On Mon, Jan 1, 2024 at 10:00 AM Bob <bob@example.com> wrote:\r\n> Old quoted text\r\n"
     )
-    rec = SourceRecord(doc_id="e1", uri="file:///m.eml", content=raw.encode(), mime="message/rfc822")
+    rec = SourceRecord(
+        doc_id="e1", uri="file:///m.eml", content=raw.encode(), mime="message/rfc822"
+    )
     doc = default_registry().parse(rec)
     assert doc.title == "Refund for order 42"
     assert doc.doc_type == "email"
@@ -203,7 +209,9 @@ def test_pdf_parser_pages_and_furniture_removal() -> None:
     pytest.importorskip("pypdf")
     body = "Revenue grew in the third quarter because enterprise customers renewed their contracts early."
     pages = [["ACME Confidential", f"Page {i} body: {body}", f"Page {i} of 4"] for i in range(1, 5)]
-    rec = SourceRecord(doc_id="p1", uri="file:///r.pdf", content=_make_pdf(pages), mime="application/pdf")
+    rec = SourceRecord(
+        doc_id="p1", uri="file:///r.pdf", content=_make_pdf(pages), mime="application/pdf"
+    )
     doc = default_registry().parse(rec)
     assert doc.parse_quality.parser.startswith("pypdf")
     assert doc.metadata["page_count"] == 4
@@ -214,7 +222,9 @@ def test_pdf_parser_pages_and_furniture_removal() -> None:
 
 
 def test_quality_scoring_flags_garbage() -> None:
-    good = MarkdownParser().parse(_rec("# T\n\n" + "This is a normal sentence about payments. " * 10, "file:///g.md"))
+    good = MarkdownParser().parse(
+        _rec("# T\n\n" + "This is a normal sentence about payments. " * 10, "file:///g.md")
+    )
     assert score_parse_quality(good).score > 0.9
     garbage = "�� x9#@q Zk$%1 ~~!~ qq� " * 20
     bad = MarkdownParser().parse(_rec(garbage, "file:///b.md"))
@@ -232,7 +242,9 @@ def test_quality_scoring_flags_garbage() -> None:
 def test_registry_routing_and_tombstones() -> None:
     reg = default_registry()
     with pytest.raises(ParseError):
-        reg.parse(SourceRecord(doc_id="x", uri="file:///x.bin", content=b"\x00", mime="application/x-foo"))
+        reg.parse(
+            SourceRecord(doc_id="x", uri="file:///x.bin", content=b"\x00", mime="application/x-foo")
+        )
     # unknown text/* falls back to the plain-text parser
     doc = reg.parse(_rec("hello world", "file:///x.weird", "text/x-weird"))
     assert doc.text == "hello world"
@@ -241,5 +253,7 @@ def test_registry_routing_and_tombstones() -> None:
 
 
 async def test_aparse_runs_in_thread() -> None:
-    doc = await default_registry().aparse(_rec("# H\n\nBody text here.", "file:///a.md", "text/markdown"))
+    doc = await default_registry().aparse(
+        _rec("# H\n\nBody text here.", "file:///a.md", "text/markdown")
+    )
     assert doc.title == "H"

@@ -60,9 +60,24 @@ def test_normalize_whitespace_preserves_markdown() -> None:
 
 def test_detect_language() -> None:
     assert detect_language("The policy is that all of the payments are retried for you.")[0] == "en"
-    assert detect_language("Die Zahlung wird nicht automatisch wiederholt, wenn der Kunde das ablehnt.")[0] == "de"
-    assert detect_language("Le paiement est effectué dans les trois jours pour les clients qui sont en France.")[0] == "fr"
-    assert detect_language("El pago se realiza en tres días para los clientes que no están en la ciudad.")[0] == "es"
+    assert (
+        detect_language(
+            "Die Zahlung wird nicht automatisch wiederholt, wenn der Kunde das ablehnt."
+        )[0]
+        == "de"
+    )
+    assert (
+        detect_language(
+            "Le paiement est effectué dans les trois jours pour les clients qui sont en France."
+        )[0]
+        == "fr"
+    )
+    assert (
+        detect_language(
+            "El pago se realiza en tres días para los clientes que no están en la ciudad."
+        )[0]
+        == "es"
+    )
     assert detect_language("これは日本語の文章です。支払いは三回再試行されます。")[0] == "ja"
     assert detect_language("Платёж будет повторён три раза для всех клиентов.")[0] == "ru"
     assert detect_language("xyz qrs")[0] == "und"
@@ -84,7 +99,11 @@ def test_clean_document_furniture_and_language() -> None:
     for p in range(1, 5):
         blocks.append(Block(type=BlockType.PARAGRAPH, text="Contoso Confidential", page=p))
         blocks.append(
-            Block(type=BlockType.PARAGRAPH, text=f"The quarterly results for the region {p} were strong-\nly positive.", page=p)
+            Block(
+                type=BlockType.PARAGRAPH,
+                text=f"The quarterly results for the region {p} were strong-\nly positive.",
+                page=p,
+            )
         )
         blocks.append(Block(type=BlockType.PARAGRAPH, text=f"- {p} -", page=p))
     blocks.append(Block(type=BlockType.CODE, text="x  =  1\n\n\n  y", page=4))

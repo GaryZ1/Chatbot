@@ -196,7 +196,9 @@ class CodeChunker(BaseChunker):
         self._validate_sizes(max_tokens)
         self.max_tokens = max_tokens
         self.max_import_lines = max_import_lines
-        self.fallback: Chunker = fallback or StructureChunker(max_tokens, tokenizer=self.tokenizer)
+        self.fallback: Chunker = fallback or StructureChunker(
+            max_tokens, min(50, max_tokens // 4), tokenizer=self.tokenizer
+        )
 
     @staticmethod
     def file_path(doc: Document) -> str:

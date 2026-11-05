@@ -135,13 +135,21 @@ def breadcrumb(title: str, heading_path: Sequence[str]) -> str:
     return BREADCRUMB_SEPARATOR.join(parts)
 
 
-def merge_heading_paths(a: Sequence[str], b: Sequence[str]) -> tuple[str, ...]:
-    """Heading path for a chunk spanning two pieces: the deeper one if nested, else the common prefix."""
+def merge_heading_paths(
+    a: Sequence[str], b: Sequence[str], *, prefer_first: bool = False
+) -> tuple[str, ...]:
+    """Heading path for a chunk spanning two pieces.
+
+    Nested paths (one is a prefix of the other) resolve to the path of the dominant
+    piece: ``prefer_first`` keeps ``a`` (e.g. a tiny sub-section merged backwards into
+    its parent's prose), otherwise the deeper path wins (a heading-only piece merged
+    forwards into its sub-section). Unrelated paths resolve to their common prefix.
+    """
     ta, tb = tuple(a), tuple(b)
-    if tb[: len(ta)] == ta:
-        return tb
-    if ta[: len(tb)] == tb:
-        return ta
+    if tb[: len(ta)] == ta or ta[: len(tb)] == tb:
+        if prefer_first:
+            return ta
+        return tb if len(tb) >= len(ta) else ta
     common: list[str] = []
     for x, y in zip(ta, tb, strict=False):
         if x != y:
@@ -261,6 +269,8 @@ class BaseChunker(abc.ABC):
         doc = index.doc
         if not 0 <= start <= end <= len(index.text):
             raise ValueError(f"invalid span [{start}, {end}) for text of length {len(index.text)}")
+        if text is None:  # never start/end a chunk on whitespace; keeps offsets exact
+            start, end = trim_span(index.text, start, end)
         body = index.text[start:end] if text is None else text
         path = tuple(heading_path) if heading_path is not None else index.heading_path_at(start)
         pg = page if page is not None else index.page_at(start)

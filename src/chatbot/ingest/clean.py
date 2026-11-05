@@ -118,6 +118,11 @@ def _furniture_key(line: str) -> str:
     return re.sub(r"\d+", "#", " ".join(line.lower().split()))
 
 
+def _edge_count(n_lines: int, edge_lines: int) -> int:
+    """Header/footer candidates per side; short pages only expose their first/last line."""
+    return max(1, min(edge_lines, n_lines // 3))
+
+
 def remove_repeated_lines(
     pages: Sequence[str], *, threshold: float = 0.5, edge_lines: int = 3, min_pages: int = 3
 ) -> list[str]:
@@ -135,7 +140,8 @@ def remove_repeated_lines(
     counts: Counter[str] = Counter()
     for page in pages:
         lines = [ln for ln in page.split("\n") if ln.strip()]
-        edge = lines[:edge_lines] + lines[-edge_lines:] if lines else []
+        k = _edge_count(len(lines), edge_lines)
+        edge = lines[:k] + lines[-k:] if lines else []
         counts.update({_furniture_key(ln) for ln in edge})
     limit = threshold * len(pages)
     repeated = {k for k, c in counts.items() if c > limit}
@@ -143,7 +149,8 @@ def remove_repeated_lines(
     for page in pages:
         lines = page.split("\n")
         non_empty = [i for i, ln in enumerate(lines) if ln.strip()]
-        edge_idx = set(non_empty[:edge_lines] + non_empty[-edge_lines:])
+        k = _edge_count(len(non_empty), edge_lines)
+        edge_idx = set(non_empty[:k] + non_empty[-k:])
         kept = [
             ln
             for i, ln in enumerate(lines)
@@ -598,25 +605,35 @@ def clean_document(
 ) -> Document:
     """Return a cleaned copy of ``doc`` (docs/01 §4). Code blocks are never altered
     except for Unicode normalisation of line endings; table text is whitespace-normalised."""
+    # 1) unicode normalisation (code: line endings only)
     blocks: list[Block] = []
     for b in doc.blocks:
         if b.type == BlockType.CODE:
             text = b.text.replace("\r\n", "\n").replace("\r", "\n").strip("\n")
             blocks.append(b.model_copy(update={"text": text}))
             continue
-        text = normalize_unicode(b.text)
-        if b.type in (BlockType.PARAGRAPH, BlockType.LIST):
-            text = merge_broken_lines(dehyphenate(text))
-        if email and b.type == BlockType.PARAGRAPH:
-            text = clean_email(text)
-        text = normalize_whitespace(text)
-        if b.type == BlockType.HEADING:
-            text = " ".join(text.split())
-        update: dict[str, object] = {"text": text}
+        update: dict[str, object] = {"text": normalize_unicode(b.text)}
         if b.caption:
             update["caption"] = normalize_unicode(b.caption).strip()
         blocks.append(b.model_copy(update=update))
+    # 2) page furniture must go *before* line merging glues it onto body text
     blocks = _strip_page_furniture(blocks, furniture_threshold)
+    # 3) line repair and whitespace
+    repaired: list[Block] = []
+    for b in blocks:
+        if b.type == BlockType.CODE:
+            repaired.append(b)
+            continue
+        text = b.text
+        if email and b.type == BlockType.PARAGRAPH:
+            text = clean_email(text)
+        if b.type in (BlockType.PARAGRAPH, BlockType.LIST):
+            text = merge_broken_lines(dehyphenate(text))
+        text = normalize_whitespace(text)
+        if b.type == BlockType.HEADING:
+            text = " ".join(text.split())
+        repaired.append(b.model_copy(update={"text": text}))
+    blocks = repaired
     blocks = [b for b in blocks if b.text.strip() or b.type in (BlockType.FIGURE,)]
     out = doc.model_copy(update={"blocks": blocks}, deep=True)
     if out.title:

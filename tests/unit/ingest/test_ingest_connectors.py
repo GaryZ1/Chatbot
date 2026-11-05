@@ -11,7 +11,9 @@ from chatbot.core.types import ACL
 from chatbot.ingest import FilesystemConnector, SourceRecord, SyncState, write_acl_sidecar
 
 
-async def _collect(conn: FilesystemConnector, state: SyncState, full: bool = False) -> list[SourceRecord]:
+async def _collect(
+    conn: FilesystemConnector, state: SyncState, full: bool = False
+) -> list[SourceRecord]:
     return [r async for r in conn.sync(state, full=full)]
 
 
@@ -100,7 +102,7 @@ async def test_state_roundtrip_and_validation(corpus: Path, tmp_path: Path) -> N
     conn = FilesystemConnector(corpus)
     state = SyncState(connector=conn.name)
     await _collect(conn, state)
-    path = tmp_path / "state" / "fs.json"
+    path = tmp_path / ".state" / "fs.json"  # hidden: not crawled
     state.save(path)
     loaded = SyncState.load(path, conn.name)
     assert loaded.entries.keys() == state.entries.keys()

@@ -33,6 +33,11 @@ logger = logging.getLogger(__name__)
 TableStrategy = Literal["atomic", "row_groups"]
 
 
+def _nested(a: Sequence[str], b: Sequence[str]) -> bool:
+    ta, tb = tuple(a), tuple(b)
+    return tb[: len(ta)] == ta or ta[: len(tb)] == tb
+
+
 class StructureChunker(BaseChunker):
     """Heading-aware chunker with recursive sub-splitting and tiny-piece merging.
 
@@ -188,15 +193,23 @@ class StructureChunker(BaseChunker):
         def can(a: Piece, b: Piece) -> bool:
             if a.text_override is not None or b.text_override is not None:
                 return False
-            if not cross_section and a.section != b.section:
-                return False
+            if a.section != b.section:
+                if not cross_section:
+                    return False
+                # never glue unrelated top-level sections together
+                if not merge_heading_paths(a.heading_path, b.heading_path) and not (
+                    _nested(a.heading_path, b.heading_path)
+                ):
+                    return False
             return self.count(text[a.start : b.end]) <= max_tokens
 
         def merge(a: Piece, b: Piece) -> Piece:
             return Piece(
                 a.start,
                 b.end,
-                merge_heading_paths(a.heading_path, b.heading_path),
+                merge_heading_paths(
+                    a.heading_path, b.heading_path, prefer_first=a.tokens >= b.tokens
+                ),
                 a.page if a.page is not None else b.page,
                 atomic=a.atomic or b.atomic,
                 section=b.section,
