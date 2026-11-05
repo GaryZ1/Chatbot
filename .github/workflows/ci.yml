@@ -1,0 +1,28 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: pip install -e ".[dev,anthropic,api]"
+      - name: Lint
+        run: ruff check src tests && ruff format --check src tests
+      - name: Type-check
+        run: mypy
+      - name: Unit + ACL matrix + regression tests
+        run: pytest
+      - name: Offline eval gate (hashing embedder, fake LLM, sample corpus)
+        run: chatbot eval --config configs/ci.yaml --dataset eval/datasets/golden_dev.jsonl --gate configs/eval_gate.yaml
