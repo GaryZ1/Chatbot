@@ -67,12 +67,16 @@ def decide_route(
             mode = M.SINGLE if needs_retrieval else M.NONE
             return RoutingDecision(route=R.AGENT, retrieval_mode=mode, reason="action")
         if cfg.escalate_enabled:
-            return RoutingDecision(route=R.ESCALATE, retrieval_mode=M.NONE, reason="action_no_agent")
+            return RoutingDecision(
+                route=R.ESCALATE, retrieval_mode=M.NONE, reason="action_no_agent"
+            )
     # Knowledge-base QA (and fall-throughs).
     if len(sub_queries) >= cfg.min_sub_queries:
         mode = M.ITERATIVE if complexity is Complexity.MULTI_HOP else M.MULTI
         if cfg.agent_enabled and complexity is Complexity.MULTI_HOP and len(sub_queries) > 4:
-            return RoutingDecision(route=R.AGENT, retrieval_mode=M.ITERATIVE, reason="deep_multi_hop")
+            return RoutingDecision(
+                route=R.AGENT, retrieval_mode=M.ITERATIVE, reason="deep_multi_hop"
+            )
         return RoutingDecision(route=R.RAG_DECOMPOSED, retrieval_mode=mode, reason="decomposed")
     if not needs_retrieval:
         return RoutingDecision(route=R.RAG_SIMPLE, retrieval_mode=M.NONE, reason="no_retrieval")

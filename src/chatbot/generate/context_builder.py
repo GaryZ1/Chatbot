@@ -182,7 +182,9 @@ class ContextBuilder:
                 cut = truncate_to_tokens(text, room, self.tokenizer)
                 # Escaping can expand text; shrink until it fits.
                 while cut and self.tokenizer.count(html.escape(cut, quote=False)) > room:
-                    cut = truncate_to_tokens(cut, max(1, self.tokenizer.count(cut) - 8), self.tokenizer)
+                    cut = truncate_to_tokens(
+                        cut, max(1, self.tokenizer.count(cut) - 8), self.tokenizer
+                    )
                 if cut:
                     selected.append((sc, cut + " …"))
                     used += overhead + self.tokenizer.count(html.escape(cut + " …", quote=False))

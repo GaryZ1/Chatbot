@@ -134,7 +134,9 @@ class AliasManager:
         self.create_index(new_schema)
         await self.backfill(new_schema.collection_name, chunks, embedder)
         if validate is not None and not await validate(self.store(new_schema.collection_name)):
-            raise RuntimeError(f"validation failed for {new_schema.collection_name}; alias unchanged")
+            raise RuntimeError(
+                f"validation failed for {new_schema.collection_name}; alias unchanged"
+            )
         sw = await self.switch(current.alias_name, new_schema.collection_name)
         if drop_old and sw.old and sw.old != sw.new:
             await self.drop(sw.old)

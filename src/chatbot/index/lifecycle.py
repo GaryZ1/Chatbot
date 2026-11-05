@@ -59,7 +59,9 @@ class FreshnessTracker:
     def __init__(self, window: int = 1000) -> None:
         self._lags: deque[float] = deque(maxlen=window)
 
-    def record(self, updated_at: datetime | None, indexed_at: datetime | None = None) -> float | None:
+    def record(
+        self, updated_at: datetime | None, indexed_at: datetime | None = None
+    ) -> float | None:
         if updated_at is None:
             return None
         indexed_at = indexed_at or utcnow()
@@ -153,7 +155,9 @@ class IndexWriter:
         return self._doc_locks.setdefault(doc_id, asyncio.Lock())
 
     # ------------------------------------------------------------------ API
-    async def index_document(self, doc: Document, chunks: Sequence[Chunk], *, force: bool = False) -> IndexResult:
+    async def index_document(
+        self, doc: Document, chunks: Sequence[Chunk], *, force: bool = False
+    ) -> IndexResult:
         """Idempotently (re)index ``doc`` with its ``chunks``."""
         if doc.deleted:
             return await self.delete_document(doc.doc_id)
@@ -170,23 +174,34 @@ class IndexWriter:
                 and state.version == doc.version
             ):
                 log.debug("skip unchanged document %s", doc.doc_id)
-                return IndexResult(doc.doc_id, IndexAction.SKIPPED, duration_s=time.perf_counter() - t0)
+                return IndexResult(
+                    doc.doc_id, IndexAction.SKIPPED, duration_s=time.perf_counter() - t0
+                )
 
             now = utcnow()
             new_chunks = [self._stamp(c, doc, is_latest=True, now=now) for c in chunks]
-            vectors = await self._embed(new_chunks)  # embed before deleting: no empty window on failure
+            vectors = await self._embed(
+                new_chunks
+            )  # embed before deleting: no empty window on failure
 
             history: list[Chunk] = []
             history_vecs: np.ndarray | None = None
             if self.keep_history:
                 new_ids = {c.chunk_id for c in new_chunks}
-                old = [c for c in existing if c.doc_version != doc.version and c.chunk_id not in new_ids]
+                old = [
+                    c
+                    for c in existing
+                    if c.doc_version != doc.version and c.chunk_id not in new_ids
+                ]
                 history = [
-                    c.model_copy(update={"metadata": {**c.metadata, "is_latest": False}}) for c in old
+                    c.model_copy(update={"metadata": {**c.metadata, "is_latest": False}})
+                    for c in old
                 ]
                 if history:
                     getter = getattr(self.vector_store, "get_vectors", None)
-                    stored: dict[str, np.ndarray] = await getter([c.chunk_id for c in history]) if getter else {}
+                    stored: dict[str, np.ndarray] = (
+                        await getter([c.chunk_id for c in history]) if getter else {}
+                    )
                     if len(stored) == len(history):
                         history_vecs = np.vstack([stored[c.chunk_id] for c in history])
                     else:
@@ -219,7 +234,9 @@ class IndexWriter:
             if self.sparse_index is not None:
                 await self.sparse_index.delete_doc(doc_id)
             self._state.pop(doc_id, None)
-        return IndexResult(doc_id, IndexAction.DELETED, chunks_deleted=n, duration_s=time.perf_counter() - t0)
+        return IndexResult(
+            doc_id, IndexAction.DELETED, chunks_deleted=n, duration_s=time.perf_counter() - t0
+        )
 
     async def index_many(
         self, items: Sequence[tuple[Document, Sequence[Chunk]]], *, concurrency: int = 4

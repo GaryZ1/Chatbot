@@ -40,9 +40,18 @@ KNOWN_PREFIXES: list[tuple[str, tuple[str, str]]] = [
     ("snowflake-arctic-embed", ("Represent this sentence for searching relevant passages: ", "")),
     (
         "qwen3-embedding",
-        ("Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: ", ""),
+        (
+            "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: ",
+            "",
+        ),
     ),
-    ("gte-qwen", ("Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: ", "")),
+    (
+        "gte-qwen",
+        (
+            "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: ",
+            "",
+        ),
+    ),
 ]
 
 
@@ -173,7 +182,10 @@ class BaseEmbedder(abc.ABC):
             return np.zeros((0, self.dim), dtype=np.float32)
         parts: list[np.ndarray] = []
         for start in range(0, len(texts), self.batch_size):
-            batch = [self._prepare(t, self.document_prefix) for t in texts[start : start + self.batch_size]]
+            batch = [
+                self._prepare(t, self.document_prefix)
+                for t in texts[start : start + self.batch_size]
+            ]
             parts.append(self._finish(await self._embed_batch(batch, is_query=False), len(batch)))
         return np.vstack(parts)
 
@@ -185,4 +197,6 @@ class BaseEmbedder(abc.ABC):
         return self._finish(arr, 1)[0]
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}(name={self.name!r}, dim={self.dim}, version={self.version!r})"
+        return (
+            f"{type(self).__name__}(name={self.name!r}, dim={self.dim}, version={self.version!r})"
+        )

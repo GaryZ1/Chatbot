@@ -28,7 +28,9 @@ from chatbot.llm.base import LLM, LLMError, LLMRequest, Tier
 logger = logging.getLogger(__name__)
 
 # [1] [1,2] [1, 2] [1; 3] [1-3]  — not followed by "(" (markdown link) and not inside words.
-_MARKER_RE = re.compile(r"\[(\s*\d{1,3}(?:\s*[-–]\s*\d{1,3})?(?:\s*[,;]\s*\d{1,3}(?:\s*[-–]\s*\d{1,3})?)*\s*)\](?!\()")
+_MARKER_RE = re.compile(
+    r"\[(\s*\d{1,3}(?:\s*[-–]\s*\d{1,3})?(?:\s*[,;]\s*\d{1,3}(?:\s*[-–]\s*\d{1,3})?)*\s*)\](?!\()"
+)
 _DANGLING_RE = re.compile(r"\s*\[[\d,;\s\-–]*$")
 _MAX_RANGE = 20
 
@@ -194,7 +196,9 @@ class _Verdict(BaseModel):
 class LLMSupportJudge:
     """LLM-as-judge support check (small tier). Falls back to lexical on LLM errors."""
 
-    def __init__(self, llm: LLM, *, tier: Tier = Tier.SMALL, fallback: SupportJudge | None = None) -> None:
+    def __init__(
+        self, llm: LLM, *, tier: Tier = Tier.SMALL, fallback: SupportJudge | None = None
+    ) -> None:
         self.llm = llm
         self.tier = tier
         self.fallback = fallback or LexicalSupportJudge()
@@ -256,7 +260,9 @@ class CitationVerifier:
         results = await asyncio.gather(
             *(self._check(claims[ci].text, sources[i].chunk.text) for ci, i in pairs)
         )
-        checks = [ClaimCheck(claim=c.text, cited=[i for i in c.indices if i in sources]) for c in claims]
+        checks = [
+            ClaimCheck(claim=c.text, cited=[i for i in c.indices if i in sources]) for c in claims
+        ]
         supported_idx: set[int] = set()
         for (ci, i), ok in zip(pairs, results, strict=True):
             if ok:
@@ -264,7 +270,11 @@ class CitationVerifier:
                 supported_idx.add(i)
         cits = [
             c.model_copy(update={"supported": c.index in supported_idx})
-            for c in (citations if citations is not None else [make_citation(i, sources[i]) for i in sorted({i for _, i in pairs})])
+            for c in (
+                citations
+                if citations is not None
+                else [make_citation(i, sources[i]) for i in sorted({i for _, i in pairs})]
+            )
         ]
         n_pairs = len(pairs)
         return VerificationReport(

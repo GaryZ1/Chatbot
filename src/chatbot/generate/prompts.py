@@ -65,9 +65,11 @@ def build_system_prompt(cfg: PromptConfig | None = None) -> str:
             f'4. If the sources answer only part of the question, answer that part with citations, then add a line "{PARTIAL_HEADING}" followed by what is missing.'
         )
     else:
-        lines.append("4. If the sources answer only part of the question, treat it as not answerable (rule 3).")
+        lines.append(
+            "4. If the sources answer only part of the question, treat it as not answerable (rule 3)."
+        )
     lines += [
-        "5. If sources conflict, prefer the most recent (see the updated attribute) or most authoritative source, and state the conflict explicitly, e.g. \"Policy v3 (2026) says X [2]; an older FAQ says Y [5].\"",
+        '5. If sources conflict, prefer the most recent (see the updated attribute) or most authoritative source, and state the conflict explicitly, e.g. "Policy v3 (2026) says X [2]; an older FAQ says Y [5]."',
         "6. For calculations over many numbers, say that an exact figure needs a report or analytics query rather than estimating.",
         "",
         "Safety:",
@@ -95,7 +97,11 @@ def _escape(text: str) -> str:
 def render_turns(turns: Sequence[Turn], *, max_chars_per_turn: int = 2000) -> str:
     out = []
     for t in turns:
-        content = t.content if len(t.content) <= max_chars_per_turn else t.content[:max_chars_per_turn] + "…"
+        content = (
+            t.content
+            if len(t.content) <= max_chars_per_turn
+            else t.content[:max_chars_per_turn] + "…"
+        )
         out.append(f'<turn role="{t.role.value}">{_escape(content)}</turn>')
     return "\n".join(out)
 
@@ -112,8 +118,14 @@ def render_user_message(
     """Volatile part of the prompt in the §2 order, with the question repeated at the end."""
     q = _escape(question.strip())
     parts = [f"<question>{q}</question>"]
-    if standalone_query and standalone_query.strip() and standalone_query.strip() != question.strip():
-        parts.append(f"<interpreted_question>{_escape(standalone_query.strip())}</interpreted_question>")
+    if (
+        standalone_query
+        and standalone_query.strip()
+        and standalone_query.strip() != question.strip()
+    ):
+        parts.append(
+            f"<interpreted_question>{_escape(standalone_query.strip())}</interpreted_question>"
+        )
     parts.append(sources_xml if sources_xml.strip() else "<sources>\n</sources>")
     if summary.strip():
         parts.append(f"<conversation_summary>\n{_escape(summary.strip())}\n</conversation_summary>")

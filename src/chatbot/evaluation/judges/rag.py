@@ -272,15 +272,15 @@ class CitationSupportJudge(Judge):
         out: list[ClaimSupport] = []
         for i, st in enumerate(statements, start=1):
             verdict = by_idx.get(i)
-            cited = [str(m) for m in st.markers]
+            cited_ids = [str(m) for m in st.markers]
             if verdict is None or not st.markers:
-                out.append(ClaimSupport(claim=st.text, cited_ids=cited, jointly_supported=False))
+                out.append(ClaimSupport(claim=st.text, cited_ids=cited_ids, jointly_supported=False))
                 continue
             supporting = {str(m) for m in verdict.supporting_ids if m in st.markers}
             out.append(
                 ClaimSupport(
                     claim=st.text,
-                    cited_ids=cited,
+                    cited_ids=cited_ids,
                     supporting_ids=supporting,
                     jointly_supported=verdict.jointly_supported or bool(supporting),
                 )

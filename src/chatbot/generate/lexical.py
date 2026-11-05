@@ -17,8 +17,7 @@ _WORD_RE = re.compile(r"[\w][\w.\-/]*[\w]|[\w]", re.UNICODE)
 _SENT_RE = re.compile(r"(?<=[.!?])[\"')\]]*\s+(?=[\"'(\[]?[A-Z0-9])|\n{2,}|\n(?=\s*[-*•]\s)")
 
 #: Small English stopword list; enough to stop function words dominating overlap.
-STOPWORDS: frozenset[str] = frozenset(
-    """
+_STOPWORDS_TEXT = """
     a an and are as at be been being but by can could did do does doing for from had has have
     having he her here hers him his how i if in into is it its itself just me more most my no nor
     not of off on once only or other our ours out over own same she should so some such than that
@@ -26,8 +25,8 @@ STOPWORDS: frozenset[str] = frozenset(
     we were what when where which while who whom why will with would you your yours yourself also
     about above after again against all am any because before below between both down during each
     few further let lets may might must shall us via per within without
-    """.split()
-)
+"""
+STOPWORDS: frozenset[str] = frozenset(_STOPWORDS_TEXT.split())
 
 
 def normalize_text(text: str) -> str:

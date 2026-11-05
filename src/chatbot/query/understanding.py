@@ -215,7 +215,11 @@ class QueryUnderstanding:
                 self._smalltalk_plan(query, normalized, lang), started, PlanSource.FAST_PATH
             )
 
-        key = (scope_key, self.normalizer.cache_key(normalized), history_hash(history, self.max_history_turns))
+        key = (
+            scope_key,
+            self.normalizer.cache_key(normalized),
+            history_hash(history, self.max_history_turns),
+        )
         cached = self.cache.get(key)
         if cached is not None:
             plan = cached.model_copy(update={"original_query": query})
@@ -225,7 +229,9 @@ class QueryUnderstanding:
             draft = await self.llm.parse(self._request(normalized, history), _PlanDraft)
         except LLMError as exc:
             logger.warning("query understanding failed; using fallback plan: %s", exc)
-            return self._finish(self._fallback_plan(query, normalized, history), started, PlanSource.FALLBACK)
+            return self._finish(
+                self._fallback_plan(query, normalized, history), started, PlanSource.FALLBACK
+            )
 
         plan = self._plan_from_draft(draft, query, normalized, history)
         self.cache.put(key, plan)

@@ -43,7 +43,7 @@ def extract_entities(text: str) -> list[str]:
     for ident in find_identifiers(text):
         found.setdefault(ident, None)
     for m in _ENTITY_RE.finditer(text):
-        tok = m.group(0).strip("\"")
+        tok = m.group(0).strip('"')
         if tok and tok.casefold() not in {"i", "a", "what", "how", "why", "when", "where", "who"}:
             # Skip a single capitalised word that only starts the sentence.
             if m.start() == 0 and " " not in tok and tok.isalpha() and not tok.isupper():
@@ -58,7 +58,11 @@ def format_history(
     """Render the last ``max_turns`` turns as escaped XML for prompts."""
     lines = []
     for t in list(history)[-max_turns:] if max_turns > 0 else []:
-        content = t.content if len(t.content) <= max_chars_per_turn else t.content[:max_chars_per_turn] + "…"
+        content = (
+            t.content
+            if len(t.content) <= max_chars_per_turn
+            else t.content[:max_chars_per_turn] + "…"
+        )
         lines.append(f'<turn role="{t.role.value}">{html.escape(content, quote=False)}</turn>')
     return "\n".join(lines)
 

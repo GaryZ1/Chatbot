@@ -106,7 +106,9 @@ def rrf(
     return _finish(acc, fused, stage, top_k)
 
 
-def normalize_scores(scores: Sequence[float], method: Normalization | str = "minmax") -> list[float]:
+def normalize_scores(
+    scores: Sequence[float], method: Normalization | str = "minmax"
+) -> list[float]:
     """Per-query normalisation of one leg's scores."""
     if not scores:
         return []
@@ -144,7 +146,9 @@ def convex_combination(
             best[cid] = max(h.score, best.get(cid, h.score))
             _merge(acc, h)
         ids = list(best)
-        normed = dict(zip(ids, normalize_scores([best[i] for i in ids], normalization), strict=True))
+        normed = dict(
+            zip(ids, normalize_scores([best[i] for i in ids], normalization), strict=True)
+        )
         floor = min(normed.values()) if normed else 0.0
         per_leg.append((floor, normed))
     fused = {

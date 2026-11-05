@@ -65,6 +65,10 @@ class LexicalOverlapReranker(BaseReranker):
                 if tf:
                     denom = tf + self.k1 * (1 - self.b + self.b * length / avg_len)
                     bm25 += idf[t] * tf * (self.k1 + 1) / denom
-            phrase = 1.0 if len(qterms) > 1 and qnorm in " ".join(rerank_text(cand.chunk).casefold().split()) else 0.0
+            phrase = (
+                1.0
+                if len(qterms) > 1 and qnorm in " ".join(rerank_text(cand.chunk).casefold().split())
+                else 0.0
+            )
             out.append(w_cov * coverage + w_bm25 * bm25 / (bm25 + 1.0) + w_phrase * phrase)
         return out

@@ -100,6 +100,8 @@ class BaseReranker(abc.ABC):
             return []
         scores = await self.score(query, candidates)
         if len(scores) != len(candidates):
-            raise ValueError(f"{self.name} returned {len(scores)} scores for {len(candidates)} candidates")
+            raise ValueError(
+                f"{self.name} returned {len(scores)} scores for {len(candidates)} candidates"
+            )
         order = sorted(range(len(candidates)), key=lambda i: (-scores[i], i))
         return [candidates[i].with_score(float(scores[i]), self.name) for i in order[:top_k]]

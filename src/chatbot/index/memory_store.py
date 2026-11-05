@@ -156,7 +156,11 @@ class InMemoryVectorStore:
         ids, matrix = self._snapshot()
         with self._state:
             chunks = self._chunks
-            rows = [i for i, cid in enumerate(ids) if cid in chunks and visible(chunks[cid], principal, flt)]
+            rows = [
+                i
+                for i, cid in enumerate(ids)
+                if cid in chunks and visible(chunks[cid], principal, flt)
+            ]
             if not rows:
                 return []
             row_idx = np.asarray(rows, dtype=np.int64)

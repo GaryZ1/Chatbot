@@ -56,7 +56,9 @@ class ParentMappingRetriever:
         if k <= 0:
             return []
         hits = await self.inner.retrieve(query, k * self.oversample, principal, flt)
-        target_ids = [h.chunk.parent_id for h in hits if h.chunk.kind in self.kinds and h.chunk.parent_id]
+        target_ids = [
+            h.chunk.parent_id for h in hits if h.chunk.kind in self.kinds and h.chunk.parent_id
+        ]
         targets = {c.chunk_id: c for c in await self.docstore.get(list(dict.fromkeys(target_ids)))}
         best: dict[str, ScoredChunk] = {}
         for h in hits:
@@ -120,7 +122,12 @@ class HybridRetriever:
             self.last_leg_latency_ms[leg.name] = (time.perf_counter() - t0) * 1000
 
     async def retrieve_legs(
-        self, query: str, principal: Principal | None, flt: Filter | None = None, *, leg_k: int | None = None
+        self,
+        query: str,
+        principal: Principal | None,
+        flt: Filter | None = None,
+        *,
+        leg_k: int | None = None,
     ) -> dict[str, list[ScoredChunk]]:
         """Run all legs concurrently; failed legs are omitted from the result."""
         k = leg_k or self.leg_k

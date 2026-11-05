@@ -186,7 +186,9 @@ class QdrantVectorStore:
                 from qdrant_client import AsyncQdrantClient
             except ImportError as exc:  # pragma: no cover - optional dependency
                 raise ImportError("QdrantVectorStore requires `pip install qdrant-client`") from exc
-            self._client = AsyncQdrantClient(url=self.url or "http://localhost:6333", api_key=self.api_key)
+            self._client = AsyncQdrantClient(
+                url=self.url or "http://localhost:6333", api_key=self.api_key
+            )
         return self._client
 
     def _filter(self, principal: Principal | None, flt: Filter | None) -> Any:
@@ -206,13 +208,17 @@ class QdrantVectorStore:
                 scalar=models.ScalarQuantizationConfig(type=models.ScalarType.INT8, always_ram=True)
             )
         elif schema.vector_dtype == "binary":
-            quant = models.BinaryQuantization(binary=models.BinaryQuantizationConfig(always_ram=True))
+            quant = models.BinaryQuantization(
+                binary=models.BinaryQuantizationConfig(always_ram=True)
+            )
         await client.create_collection(
             collection_name=name,
             vectors_config=models.VectorParams(
                 size=self.dim, distance=models.Distance.COSINE, on_disk=self.on_disk_vectors
             ),
-            hnsw_config=models.HnswConfigDiff(m=schema.hnsw_m, ef_construct=schema.hnsw_ef_construction),
+            hnsw_config=models.HnswConfigDiff(
+                m=schema.hnsw_m, ef_construct=schema.hnsw_ef_construction
+            ),
             quantization_config=quant,
         )
         for f in schema.indexed_fields():
@@ -246,11 +252,15 @@ class QdrantVectorStore:
             return
         arr = l2_normalize(np.asarray(vectors, dtype=np.float32))
         if arr.shape != (len(chunks), self.dim):
-            raise ValueError(f"expected vectors of shape ({len(chunks)}, {self.dim}), got {arr.shape}")
+            raise ValueError(
+                f"expected vectors of shape ({len(chunks)}, {self.dim}), got {arr.shape}"
+            )
         models = self._models()
         points = [
             models.PointStruct(
-                id=point_id(c.chunk_id), vector=v.tolist(), payload=chunk_to_payload(c, self.embedding)
+                id=point_id(c.chunk_id),
+                vector=v.tolist(),
+                payload=chunk_to_payload(c, self.embedding),
             )
             for c, v in zip(chunks, arr, strict=True)
         ]
@@ -259,7 +269,9 @@ class QdrantVectorStore:
     async def delete_doc(self, doc_id: str) -> int:
         flt = self._filter(None, Filter.eq(doc_id=doc_id))
         client = self._get_client()
-        n = (await client.count(collection_name=self.collection, count_filter=flt, exact=True)).count
+        n = (
+            await client.count(collection_name=self.collection, count_filter=flt, exact=True)
+        ).count
         if n:
             await client.delete(
                 collection_name=self.collection,

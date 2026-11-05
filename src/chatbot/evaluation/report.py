@@ -245,9 +245,9 @@ def render_markdown(
     if comparison is not None and comparison.slice_regressions:
         lines.append("")
         lines.append("**Slice regressions:**")
-        for d in comparison.slice_regressions:
+        for sd in comparison.slice_regressions:
             lines.append(
-                f"- `{d.slice}` {d.metric}: {d.baseline:.3f} → {d.candidate:.3f} ({d.delta:+.3f}, n={d.n})"
+                f"- `{sd.slice}` {sd.metric}: {sd.baseline:.3f} → {sd.candidate:.3f} ({sd.delta:+.3f}, n={sd.n})"
             )
     lines.append("")
 

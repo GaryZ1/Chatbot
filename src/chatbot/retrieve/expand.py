@@ -59,7 +59,9 @@ async def expand_neighbours(
                 continue
             present.add(n.chunk_id)
             s = h.score * score_decay
-            out.append(ScoredChunk(chunk=n, score=s, source="neighbour", stage_scores={"neighbour": s}))
+            out.append(
+                ScoredChunk(chunk=n, score=s, source="neighbour", stage_scores={"neighbour": s})
+            )
     return out
 
 
@@ -162,7 +164,9 @@ def apply_boosts(
     for h in hits:
         bonus = 0.0
         if freshness_weight:
-            bonus += freshness_weight * freshness_score(h.chunk, now=now, half_life_days=half_life_days)
+            bonus += freshness_weight * freshness_score(
+                h.chunk, now=now, half_life_days=half_life_days
+            )
         if authority_weight:
             bonus += authority_weight * authority_score(h.chunk, by_doc_type=authority_by_doc_type)
         if latest_weight and h.chunk.metadata.get("is_latest", True):

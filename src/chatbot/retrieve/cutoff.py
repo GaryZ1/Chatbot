@@ -7,6 +7,7 @@ enables principled abstention (an empty result).
 
 from __future__ import annotations
 
+import itertools
 from collections.abc import Sequence
 
 from chatbot.core.tokens import Tokenizer, default_tokenizer
@@ -39,7 +40,7 @@ def score_gap_cutoff(
         return ranked
     span = ranked[0].score - ranked[-1].score
     out = [ranked[0]]
-    for prev, cur in zip(ranked, ranked[1:], strict=False):
+    for prev, cur in itertools.pairwise(ranked):
         gap = prev.score - cur.score
         if len(out) >= min_k and (
             (abs_gap is not None and gap > abs_gap) or (span > 0 and gap > rel_gap * span)

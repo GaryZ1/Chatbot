@@ -140,7 +140,9 @@ class RedisSessionStore:
         return Session.model_validate_json(raw)
 
     async def put(self, session: Session) -> None:
-        await self._redis().set(self.prefix + session.session_id, session.model_dump_json(), ex=self.ttl_s)
+        await self._redis().set(
+            self.prefix + session.session_id, session.model_dump_json(), ex=self.ttl_s
+        )
 
     async def delete(self, session_id: str) -> bool:
         return bool(await self._redis().delete(self.prefix + session_id))
@@ -187,13 +189,16 @@ class GenerationContext(BaseModel):
         if self.summary:
             parts.append(self.summary)
         if self.slots:
-            parts.append("Known details: " + "; ".join(f"{k}={v}" for k, v in sorted(self.slots.items())))
+            parts.append(
+                "Known details: " + "; ".join(f"{k}={v}" for k, v in sorted(self.slots.items()))
+            )
         return "\n".join(parts)
 
 
 def _render_turns(turns: Sequence[Turn], max_chars: int = 1500) -> str:
     return "\n".join(
-        f'<turn role="{t.role.value}">{html.escape(t.content[:max_chars], quote=False)}</turn>' for t in turns
+        f'<turn role="{t.role.value}">{html.escape(t.content[:max_chars], quote=False)}</turn>'
+        for t in turns
     )
 
 
@@ -260,7 +265,11 @@ class ConversationMemory:
                 if s.tenant_id != principal.tenant_id or s.user_id != principal.user_id:
                     raise PermissionError("session belongs to a different principal")
                 return s
-        s = Session(session_id=session_id or uuid.uuid4().hex, tenant_id=principal.tenant_id, user_id=principal.user_id)
+        s = Session(
+            session_id=session_id or uuid.uuid4().hex,
+            tenant_id=principal.tenant_id,
+            user_id=principal.user_id,
+        )
         await self.store.put(s)
         return s
 
@@ -273,7 +282,9 @@ class ConversationMemory:
 
     # ------------------------------------------------------------------ writes
 
-    async def add_turn(self, session: Session, role: Role, content: str, *, persist: bool = True) -> Session:
+    async def add_turn(
+        self, session: Session, role: Role, content: str, *, persist: bool = True
+    ) -> Session:
         if not content.strip():
             raise ValueError("turn content must be non-empty")
         session.turns.append(Turn(role=role, content=content))
@@ -301,7 +312,9 @@ class ConversationMemory:
             f"<current_summary>{html.escape(session.summary, quote=False) or '(empty)'}</current_summary>\n"
             f"<new_turns>\n{_render_turns(to_fold)}\n</new_turns>"
         )
-        req = LLMRequest.simple(prompt, system=self._summary_system, tier=self.tier, max_tokens=2048)
+        req = LLMRequest.simple(
+            prompt, system=self._summary_system, tier=self.tier, max_tokens=2048
+        )
         try:
             text = (await self.llm.generate(req)).text.strip()
         except LLMError as exc:
@@ -315,7 +328,9 @@ class ConversationMemory:
         if len(session.turns) > self.max_raw_turns:
             # Extractive fallback: keep the user's earlier questions as terse notes.
             cut = len(session.turns) - self.window_turns
-            notes = [f"User asked: {t.content[:160]}" for t in session.turns[:cut] if t.role is Role.USER]
+            notes = [
+                f"User asked: {t.content[:160]}" for t in session.turns[:cut] if t.role is Role.USER
+            ]
             session.summary = "\n".join([s for s in [session.summary, *notes] if s])[-4000:]
             session.turns = session.turns[cut:]
             session.summarized_turns += cut
@@ -365,7 +380,9 @@ class ConversationMemory:
         synthetic assistant turn so references to early entities still resolve.
         """
         recent = list(session.turns[-self.condense_turns :])
-        if session.summary and len(session.turns) <= self.condense_turns:
-            note = Turn(role=Role.ASSISTANT, content=f"(Earlier conversation summary) {session.summary}")
+        if session.summary:
+            note = Turn(
+                role=Role.ASSISTANT, content=f"(Earlier conversation summary) {session.summary}"
+            )
             return [note, *recent]
         return recent

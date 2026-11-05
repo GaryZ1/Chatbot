@@ -40,14 +40,18 @@ class ExtractiveCompressor:
         self.drop_irrelevant = drop_irrelevant
         self.tokenizer = tokenizer or default_tokenizer()
 
-    def _scores(self, query_terms: set[str], sentences: list[str], idf: dict[str, float]) -> list[float]:
+    def _scores(
+        self, query_terms: set[str], sentences: list[str], idf: dict[str, float]
+    ) -> list[float]:
         out = []
         for s in sentences:
             st = set(terms(s))
             out.append(sum(idf.get(t, 1.0) for t in st & query_terms))
         return out
 
-    def compress_text(self, query: str, text: str, max_tokens: int, *, idf: dict[str, float] | None = None) -> str:
+    def compress_text(
+        self, query: str, text: str, max_tokens: int, *, idf: dict[str, float] | None = None
+    ) -> str:
         """Return the query-relevant extract of ``text`` (≤ ``max_tokens``), or ``""`` if irrelevant
         and ``drop_irrelevant`` is set."""
         if max_tokens <= 0:
@@ -62,7 +66,9 @@ class ExtractiveCompressor:
             if self.drop_irrelevant:
                 return ""
             return truncate_to_tokens(sentences[0], max_tokens, self.tokenizer)
-        if self.tokenizer.count(text) <= max_tokens and all(s >= self.min_overlap * best for s in scores):
+        if self.tokenizer.count(text) <= max_tokens and all(
+            s >= self.min_overlap * best for s in scores
+        ):
             return text
         ranked = sorted(range(len(sentences)), key=lambda i: (-scores[i], i))
         keep: set[int] = set()
@@ -84,7 +90,9 @@ class ExtractiveCompressor:
             return truncate_to_tokens(sentences[ranked[0]], max_tokens, self.tokenizer)
         return " ".join(sentences[i] for i in sorted(keep))
 
-    def compress(self, query: str, chunks: Sequence[ScoredChunk], budget_tokens: int) -> list[ScoredChunk]:
+    def compress(
+        self, query: str, chunks: Sequence[ScoredChunk], budget_tokens: int
+    ) -> list[ScoredChunk]:
         """Compress ``chunks`` so their texts total at most ``budget_tokens``.
 
         Budget is shared evenly; unused budget of short chunks rolls over to later ones
@@ -110,7 +118,11 @@ class ExtractiveCompressor:
             if text == sc.chunk.text:
                 results[i] = sc
                 continue
-            md = {**sc.chunk.metadata, "compressed": True, "original_token_count": self.tokenizer.count(sc.chunk.text)}
+            md = {
+                **sc.chunk.metadata,
+                "compressed": True,
+                "original_token_count": self.tokenizer.count(sc.chunk.text),
+            }
             chunk = sc.chunk.model_copy(update={"text": text, "metadata": md})
             results[i] = sc.model_copy(update={"chunk": chunk})
         return [results[i] for i in sorted(results)]

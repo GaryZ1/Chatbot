@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import itertools
 import math
 import re
 import unicodedata
@@ -31,9 +32,68 @@ _WORD_RE = re.compile(r"\w+", re.UNICODE)
 
 #: Compact English stopword list; such tokens get a low weight rather than zero.
 STOPWORDS: frozenset[str] = frozenset(
-    """a an and are as at be been but by can did do does for from had has have how i if in
-    into is it its me my no not of on or our so than that the their them then there these
-    they this to was we were what when where which who why will with you your""".split()
+    [
+        "a",
+        "an",
+        "and",
+        "are",
+        "as",
+        "at",
+        "be",
+        "been",
+        "but",
+        "by",
+        "can",
+        "did",
+        "do",
+        "does",
+        "for",
+        "from",
+        "had",
+        "has",
+        "have",
+        "how",
+        "i",
+        "if",
+        "in",
+        "into",
+        "is",
+        "it",
+        "its",
+        "me",
+        "my",
+        "no",
+        "not",
+        "of",
+        "on",
+        "or",
+        "our",
+        "so",
+        "than",
+        "that",
+        "the",
+        "their",
+        "them",
+        "then",
+        "there",
+        "these",
+        "they",
+        "this",
+        "to",
+        "was",
+        "we",
+        "were",
+        "what",
+        "when",
+        "where",
+        "which",
+        "who",
+        "why",
+        "will",
+        "with",
+        "you",
+        "your",
+    ]
 )
 
 
@@ -92,7 +152,7 @@ class HashingEmbedder(BaseEmbedder):
             for n in range(lo, hi + 1):
                 for i in range(0, max(len(padded) - n + 1, 0)):
                     feats["c:" + padded[i : i + n]] += 1
-        for a, b in zip(words, words[1:], strict=False):
+        for a, b in itertools.pairwise(words):
             if a in STOPWORDS and b in STOPWORDS:
                 continue
             feats[f"b:{a} {b}"] += 1

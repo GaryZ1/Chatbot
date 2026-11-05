@@ -327,7 +327,9 @@ class AnswerGenerator:
             )
             return
         latency = (time.perf_counter() - started) * 1000.0
-        answer = await self.finalize("".join(parts), pack, route=route, standalone_query=sq, latency_ms=latency)
+        answer = await self.finalize(
+            "".join(parts), pack, route=route, standalone_query=sq, latency_ms=latency
+        )
         if first_token_ms is not None:
             answer.latency_ms["first_token"] = first_token_ms
         yield StreamEvent(type="answer", answer=answer)
@@ -338,7 +340,9 @@ class AnswerGenerator:
         """Reply to greetings / out-of-scope messages without retrieval (small tier)."""
         prompt = message
         if recent_turns:
-            prompt = f"<recent_turns>\n{render_turns(recent_turns[-4:])}\n</recent_turns>\n\n{message}"
+            prompt = (
+                f"<recent_turns>\n{render_turns(recent_turns[-4:])}\n</recent_turns>\n\n{message}"
+            )
         req = LLMRequest.simple(prompt, system=SMALLTALK_SYSTEM, tier=Tier.SMALL, max_tokens=1024)
         resp = await self.llm.generate(req)
         return Answer(

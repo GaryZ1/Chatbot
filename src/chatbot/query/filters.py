@@ -191,7 +191,9 @@ class FilterSchema(BaseModel):
                 raise _CoercionError("empty list")
             return Condition(field=spec.name, op=op, value=coerced)
         if op is Op.EXISTS:
-            return Condition(field=spec.name, op=op, value=bool(value) if value is not None else True)
+            return Condition(
+                field=spec.name, op=op, value=bool(value) if value is not None else True
+            )
         if isinstance(value, (list, tuple, set)):
             raise _CoercionError(f"operator {op.value} takes a single value")
         return Condition(field=spec.name, op=op, value=self._coerce_scalar(spec, value))
@@ -219,7 +221,9 @@ class FilterSchema(BaseModel):
         default = Op.CONTAINS if spec.type is FieldType.STRING_LIST else Op.EQ
         return [self._condition(spec, default, raw)]
 
-    def validate_raw(self, raw: Mapping[str, Any] | Sequence[Mapping[str, Any]] | None) -> FilterValidation:
+    def validate_raw(
+        self, raw: Mapping[str, Any] | Sequence[Mapping[str, Any]] | None
+    ) -> FilterValidation:
         """Validate LLM-proposed filters; never raises on bad content (drops + warns).
 
         Accepts ``{"field": value}``, ``{"field": [v1, v2]}`` (IN),
@@ -236,7 +240,10 @@ class FilterSchema(BaseModel):
             for item in raw:
                 if isinstance(item, Mapping) and "field" in item:
                     entries.append(
-                        (str(item["field"]), {"op": item.get("op", "eq"), "value": item.get("value")})
+                        (
+                            str(item["field"]),
+                            {"op": item.get("op", "eq"), "value": item.get("value")},
+                        )
                     )
                 else:
                     result.dropped.append(DroppedFilter(field="?", value=item, reason="malformed"))

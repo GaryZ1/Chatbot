@@ -74,7 +74,9 @@ class MMRSelector:
         order = mmr_indices(q, vectors, k, lambda_=self.lambda_)
         n = len(order)
         # Score encodes MMR rank so downstream sorting preserves the diverse order.
-        return [candidates[i].with_score(float(n - rank) / n, self.name) for rank, i in enumerate(order)]
+        return [
+            candidates[i].with_score(float(n - rank) / n, self.name) for rank, i in enumerate(order)
+        ]
 
     async def rerank(
         self, query: str, candidates: Sequence[ScoredChunk], top_k: int
