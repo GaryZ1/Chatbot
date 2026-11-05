@@ -1,5 +1,7 @@
 # 09 — Advanced RAG: Graph, Agentic, Self-correcting, Multimodal
 
+> Full catalog with runnable code for every method: [Module 20](20-advanced-rag-catalog.md).
+
 Use these **only when the evaluation shows** that a well-tuned hybrid + rerank baseline fails on a specific query class (multi-hop, global or thematic, multi-source, visual).
 
 ## 1. Taxonomy of RAG architectures
