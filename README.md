@@ -40,6 +40,8 @@ Most engineers can wire LangChain to a vector database. The top 0.1% can do the 
 | 15 | [Enterprise case studies](docs/15-enterprise-case-studies.md) | What worked at LinkedIn, DoorDash, Merck, and others, and why |
 | 16 | [Build plan & roadmap](docs/16-build-plan.md) | A phased, milestone-based plan to build this chatbot in this repo |
 | 17 | [Reading list & repos](docs/17-reading-list.md) | The papers and repos worth reading, ranked |
+| 18 | [Mastery quiz: questions](docs/18-quiz-questions.md) | About 130 questions (fundamentals → expert, with calculations and design scenarios) to test yourself |
+| 19 | [Mastery quiz: answers](docs/19-quiz-answers.md) | A worked answer key for every question |
 
 ### Suggested pace
 
@@ -49,7 +51,7 @@ Most engineers can wire LangChain to a vector database. The top 0.1% can do the 
 - **Weeks 7–8:** Modules 12–15. Add production hardening and do a red-team pass.
 - **Ongoing:** Module 16 milestones and Module 17 papers.
 
-Each module ends with **"Expert checks"**: questions you should be able to answer cold. If you can't, re-read the module.
+Each module ends with **"Expert checks"** and a **"Deep dive"** section: internals, formulas, model reference tables, and worked numeric examples (BM25, RRF, score normalization, cross-encoder scoring, InfoNCE, nDCG, Cohen's κ, cost math). When you finish, take the [mastery quiz](docs/18-quiz-questions.md).
 
 ---
 

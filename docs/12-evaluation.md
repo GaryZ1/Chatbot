@@ -86,3 +86,64 @@ This **retrieval funnel** tells you exactly where to invest.
 - How does ARES use prediction-powered inference, and why does it matter?
 - How do you validate an LLM judge before trusting it?
 - Design a golden set for a policy bot with 20% unanswerable questions. What metrics gate a release?
+
+---
+
+# Deep dive: computing every metric by hand
+
+Running example: gold relevant chunks for query Q are **{d3, d7}**. The system returns the ranked list **[d1, d3, d5, d7, d9]**.
+
+| Metric | Formula | Calculation | Value |
+|---|---|---|---|
+| Hit@1 | any relevant in the top 1? | d1 not relevant | 0 |
+| Hit@3 | any relevant in the top 3? | d3 at rank 2 | 1 |
+| Recall@3 | relevant in top 3 / total relevant | {d3} / 2 | **0.50** |
+| Recall@5 | | {d3, d7} / 2 | **1.00** |
+| Precision@5 | relevant in top 5 / 5 | 2/5 | **0.40** |
+| MRR | 1 / rank of first relevant | 1/2 | **0.50** |
+| AP (average precision) | mean of precision at each relevant hit | (P@2 = 1/2 + P@4 = 2/4)/2 | **0.50** |
+| DCG@5 (binary) | Σ rel_i / log2(i+1) | 1/log2(3) + 1/log2(5) = 0.631 + 0.431 | 1.062 |
+| IDCG@5 | DCG of the ideal order [d3, d7, …] | 1/log2(2) + 1/log2(3) = 1 + 0.631 | 1.631 |
+| **nDCG@5** | DCG / IDCG | 1.062 / 1.631 | **0.651** |
+
+**Graded nDCG:** with relevance grades (d3 = 3 "perfect", d7 = 1 "partial"), use gain `2^rel − 1`: DCG = 7/1.585 + 1/2.322 = 4.416 + 0.431 = 4.847; IDCG = 7/1 + 1/1.585 = 7.631 → nDCG = **0.635**.
+
+Over a dataset, report the **mean** across queries (MRR = mean of the reciprocal ranks, MAP = mean of AP).
+
+## Faithfulness (claim-level)
+Answer: *"Up to 5 PTO days roll over [1]. Rolled-over days expire March 31 [1]. California employees get unlimited rollover [2]. Requests need manager approval."*
+1. Decompose into claims: C1 (5 days), C2 (expire March 31), C3 (California unlimited), C4 (manager approval).
+2. Check each against the context (NLI or judge): C1 ✓, C2 ✓, C3 ✓ (source 2 says CA has no forfeiture), C4 ✗ (not in any source).
+3. Faithfulness = 3/4 = **0.75**.
+4. Citation precision: C1–C3 citations support their claims → 3/3 = 1.0. Citation recall: 3 of the 4 claims carry citations → 0.75; C4 is unsupported *and* uncited → flag it as a hallucination.
+
+## Context precision / recall (RAGAS-style)
+- **Context recall:** split the *reference answer* into sentences; the share attributable to the retrieved context. Reference has 4 statements, 3 found → 0.75.
+- **Context precision:** for each retrieved chunk, is it relevant? It's computed rank-aware (like AP over relevance flags). Chunks [rel, irrel, rel] → (1/1 + 2/3)/2 = **0.833**.
+
+## Judge calibration: Cohen's κ
+100 answers labeled pass/fail by a human and the judge. They agree on 85. The human says "pass" for 60, the judge for 55.
+- Observed agreement p_o = 0.85
+- Chance agreement p_e = 0.60·0.55 + 0.40·0.45 = 0.33 + 0.18 = 0.51
+- κ = (p_o − p_e) / (1 − p_e) = 0.34 / 0.49 = **0.69** ("substantial"; aim for ≥ 0.6–0.8)
+Also look at the confusion matrix: a judge that is too lenient (passes what the human fails) is more dangerous than one that is too strict.
+
+## Paired bootstrap significance (is B really better than A?)
+```python
+import numpy as np
+diff = scores_B - scores_A                 # per-question metric, same questions
+boots = [np.mean(np.random.choice(diff, len(diff), replace=True)) for _ in range(10_000)]
+lo, hi = np.percentile(boots, [2.5, 97.5])  # 95% CI of the mean improvement
+# if lo > 0 → B is significantly better
+```
+Rule of thumb: with ~300 questions you can reliably detect ~4–6-point differences in accuracy-type metrics.
+
+## Retrieval funnel example (error analysis)
+| Bucket | Count (of 100 failures) | Meaning | Action |
+|---|---|---|---|
+| Gold not in corpus | 12 | F1 coverage | Content team |
+| Gold not in top-100 | 18 | Parsing, chunking, embedding | Fix parse/chunk; hybrid; fine-tune |
+| In top-100, not in top-k | 25 | Ranking | Better reranker; more candidates |
+| In context, answer wrong | 30 | Generation | Prompt, ordering, model |
+| Correct, but judged wrong | 15 | Evaluation noise | Fix labels or judge |
+→ This team should prioritize ranking and generation, not a new embedding model.

@@ -141,3 +141,48 @@ Decision: adopt / reject / iterate
 3. Explain the trade-offs among all 20 chunking methods, 6 retrieval paradigms, and 8 reranker types without notes.
 4. Ship a change through offline eval → canary → A/B with statistically valid results.
 5. Pass the ACL and red-team suites with zero leaks.
+
+---
+
+# Deep dive: core interfaces (so every component is swappable)
+
+```python
+from typing import Protocol, Sequence
+from pydantic import BaseModel
+
+class Chunk(BaseModel):
+    chunk_id: str; doc_id: str; parent_id: str | None
+    display_text: str; embed_text: str
+    heading_path: list[str]; page: int | None; char_span: tuple[int, int]
+    metadata: dict
+
+class Chunker(Protocol):
+    def split(self, doc: "ParsedDocument") -> list[Chunk]: ...
+
+class Embedder(Protocol):
+    model_id: str; dims: int
+    def embed_documents(self, texts: Sequence[str]) -> list[list[float]]: ...
+    def embed_query(self, text: str) -> list[float]: ...          # applies the query prefix
+
+class Retriever(Protocol):
+    def search(self, query: str, k: int, filters: dict) -> list["Hit"]: ...   # Hit = (chunk_id, score, rank, source)
+
+class Fuser(Protocol):
+    def fuse(self, ranked_lists: list[list["Hit"]]) -> list["Hit"]: ...       # RRF, convex, DBSF
+
+class Reranker(Protocol):
+    def rerank(self, query: str, hits: list["Hit"], top_n: int) -> list["Hit"]: ...
+
+class Generator(Protocol):
+    def answer(self, question: str, sources: list[Chunk], history: list[dict]) -> "Answer": ...
+```
+Every experiment in Phases 2–5 is then just a **config change** (`configs/experiments/*.yaml`), e.g.:
+```yaml
+chunker: {name: structure_recursive, max_tokens: 400, overlap: 0, breadcrumbs: true}
+enrich:  {contextual: true, questions: 4}
+embedder: {name: qwen3-embedding-4b, dims: 1024, quant: int8}
+retrievers: [{name: bm25, k: 100}, {name: dense, k: 100}]
+fusion:  {name: rrf, k: 60}
+reranker: {name: bge-reranker-v2-m3, candidates: 150, top_n: 8, threshold: 0.35}
+generator: {model: mid-tier, context_budget_tokens: 12000}
+```

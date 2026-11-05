@@ -86,3 +86,24 @@ Adapted from "Seven Failure Points When Engineering a RAG System" (Barnett et al
 - Name five failure points that a bigger LLM does **not** fix.
 - When is long-context stuffing strictly better than RAG? When is it strictly worse?
 - Why must ACL filtering happen before similarity scoring and top-K, not after?
+
+---
+
+# Deep dive: one request, end to end (with timings)
+
+User (California, group `all-employees-us`) asks: **"Can I carry over unused PTO?"**
+
+| # | Stage | What happens | Output | ~ms |
+|---|---|---|---|---|
+| 1 | Auth | JWT → user_id, groups | `groups=[all-employees-us]` | 5 |
+| 2 | Input guard | Injection/PII classifier | pass | 40 |
+| 3 | Understand | One small-LLM call | `intent=kb_qa, standalone="PTO carry-over rules", filters={doc_type: policy}` | 250 |
+| 4 | Embed query | Qwen3-Embedding / API | 1024-d vector | 20 |
+| 5 | Hybrid retrieve | BM25 top-100 ‖ dense top-100, ACL + `is_latest` filter | 2 lists | 60 |
+| 6 | Fuse | RRF k=60 | 150 candidates | 1 |
+| 7 | Rerank | bge-reranker-v2-m3 on 150 | top 8, max σ = 0.96 | 180 |
+| 8 | Expand / assemble | Child→parent, dedupe, order, 12k-token budget | 3 sources | 5 |
+| 9 | Generate | Mid-tier LLM, streamed, cached prefix | answer + [1][2] | 600 TTFT |
+| 10 | Output guard | Claim-level grounding + PII + URL check | pass | 150 (async on the stream) |
+| 11 | Log | Trace with all IDs, scores, versions | — | async |
+Total time to first token ≈ **1.2 s**. A thumbs-down on this trace would go into the error-review queue with every intermediate step attached.

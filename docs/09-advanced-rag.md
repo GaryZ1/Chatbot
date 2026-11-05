@@ -62,3 +62,52 @@ Use these **only when the evaluation shows** that a well-tuned hybrid + rerank b
 - What did the 2026 RAGSearch benchmark imply about GraphRAG vs. agentic dense RAG?
 - Design a CRAG-style loop and bound its worst-case latency.
 - When is ColPali strictly better than OCR + text embedding?
+
+---
+
+# Deep dive: algorithms step by step
+
+## A. Microsoft GraphRAG indexing pipeline
+1. **Chunk** documents (e.g. 300–1,200 tokens).
+2. **Extract** entities (name, type, description) and relationships (source, target, description, strength) with an LLM per chunk; optionally "gleaning" rounds to catch misses.
+3. **Merge** duplicates across chunks; summarize each entity's and relationship's descriptions.
+4. **Community detection** with hierarchical **Leiden** on the entity graph → levels C0 (coarse) … Cn (fine).
+5. **Community reports:** an LLM writes a summary per community (key entities, claims, findings).
+6. **Query:**
+   - *Local search:* find the entities matching the query → gather their neighbors, relationships, source chunks, and community reports → answer.
+   - *Global search (map-reduce):* every community report at a level answers the question in parallel with a helpfulness score (**map**) → the top partial answers are combined (**reduce**). This is how it answers "What are the main themes across the corpus?"
+   - *DRIFT:* starts global, then follows up with local searches.
+
+## B. HippoRAG retrieval: Personalized PageRank
+1. Offline: OpenIE triples from every passage → a KG (nodes = noun phrases, edges = relations + synonym edges from embedding similarity).
+2. Query: extract the query's named entities → link them to KG nodes → these are the **seed** nodes.
+3. Run **Personalized PageRank**: `r = (1 − d)·s + d·Mᵀ r`, where `s` puts probability only on the seed nodes and d ≈ 0.5–0.85. Probability mass spreads along edges to nodes *connected to the query's entities*.
+4. Passage score = sum of the PPR scores of the nodes it contains → rank passages.
+Why it helps multi-hop: "Which Stanford professor works on Alzheimer's?" seeds {Stanford, Alzheimer's}. A professor node connected to *both* gets mass from both seeds in a single step, with no iterative retrieval needed.
+
+## C. CRAG control flow
+```
+docs = retrieve(q)
+grades = evaluator(q, docs)          # per-doc relevance score in [−1, 1]
+if max(grades) > upper:   action = CORRECT    → knowledge = refine(docs)          # split into strips, keep relevant ones
+elif max(grades) < lower: action = INCORRECT  → knowledge = web_search(rewrite(q))
+else:                     action = AMBIGUOUS  → knowledge = refine(docs) + web_search(rewrite(q))
+answer = generate(q, knowledge)
+```
+In the enterprise: replace "web search" with *broader internal search*, *ask a clarifying question*, or *abstain*.
+
+## D. Agentic RAG loop (ReAct with budget)
+```python
+state = {"q": q, "evidence": [], "steps": 0}
+while state["steps"] < MAX_STEPS and tokens_used < BUDGET:
+    thought, action = llm.plan(state)                 # e.g. search("2025 travel policy intl flights")
+    if action.name == "final_answer": break
+    obs = tools[action.name](**action.args)           # ACL-filtered search / read_section / sql
+    state["evidence"].append(obs); state["steps"] += 1
+    if llm.sufficient(state): break                   # reflection
+return llm.answer_with_citations(state)
+```
+Evaluation: final-answer correctness **plus** trajectory metrics (number of steps, redundant searches, tool-error rate, cost).
+
+## E. ColPali scoring
+Each page image → a ~1,030 patch embeddings (128-d). Each query token → a 128-d vector. Score = **MaxSim** (as in ColBERT): for every query token, the max similarity over all page patches, summed. Storage per page ≈ 1,030 × 128 × 2 bytes ≈ 264 KB in fp16 → 1M pages ≈ 264 GB, hence binarization, token pooling (merge similar patches), or MUVERA.

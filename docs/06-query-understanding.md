@@ -45,3 +45,64 @@ Combine all of this into **one** structured LLM call to save latency. Use a smal
 - When does HyDE hurt? (Exact identifiers; the model confidently invents wrong specifics; domains the LLM doesn't know.)
 - Why is RRF preferred over linear score combination when fusing retrievers?
 - How would you detect that your router silently sends 8% of analytics questions to the text KB?
+
+---
+
+# Deep dive: worked examples
+
+## A. Conversational condensing
+```
+History:  U: "What's the parental leave policy in Germany?"
+          A: "...14 weeks fully paid..."
+User:     "And for the UK?"
+Condensed (retrieval query): "Parental leave policy for employees in the United Kingdom"
+```
+Prompt pattern: *"Rewrite the final user message into a standalone search query using the conversation. Keep entities, dates, product names. If it's already standalone, return it unchanged. Output only the query."*
+
+## B. Multi-query + RRF
+```
+Original: "laptop won't connect to vpn after update"
+Variants: 1. "VPN connection failure after OS update"
+          2. "GlobalProtect not connecting macOS Sonoma"
+          3. "fix VPN client error after software upgrade"
+Retrieve top-50 for each of 4 queries → RRF over the 4 lists (Module 07 §D1) → rerank.
+```
+Documents surfaced by several variants rise, which gives robustness to wording.
+
+## C. HyDE
+```
+Query: "how does the company treat stock options when an employee leaves?"
+Hypothetical answer (LLM, not shown to the user):
+  "When an employee terminates, vested stock options typically must be exercised within
+   90 days (the post-termination exercise window); unvested options are forfeited..."
+Embed the hypothetical answer → search → it lands near actual equity-plan documents
+(answer-like text matches answer-like documents better than a short question does).
+```
+Failure mode: the LLM writes "90 days", but your plan says 7 years. Retrieval still works (topic match), but **never** show the hypothetical text, and still generate only from retrieved sources.
+
+## D. Decomposition
+```
+Q: "Compare the 2025 and 2026 travel reimbursement limits for international flights."
+Sub-queries: q1 "2025 travel policy international flight reimbursement limit"
+             q2 "2026 travel policy international flight reimbursement limit"
+Retrieve for each in parallel → give the generator both evidence sets, labeled → compare.
+```
+
+## E. Self-query (filter extraction) with validation
+```json
+// input: "security policies updated after March 2026 for EMEA contractors"
+{
+  "semantic_query": "security policy for contractors",
+  "filters": {"doc_type": "policy", "updated_at": {"gte": "2026-03-01"},
+              "region": "EMEA", "audience": "contractor"}
+}
+```
+Validate: `doc_type ∈ enum`, region ∈ the known list, a parseable date. Drop invalid filters rather than failing, and **log** them.
+
+## F. Router output schema (single structured call)
+```json
+{"intent": "kb_qa | smalltalk | analytics_sql | action | out_of_scope | escalate",
+ "standalone_query": "...", "sub_queries": ["..."], "filters": {...},
+ "needs_retrieval": true, "complexity": "simple | multi_hop | research",
+ "language": "en", "clarifying_question": null}
+```

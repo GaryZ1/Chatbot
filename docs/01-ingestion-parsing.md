@@ -86,3 +86,49 @@ Keep **blocks with types and hierarchy**. Every later stage (chunking, enrichmen
 - Why can a VLM parser score higher on OmniDocBench yet hurt RAG on your corpus? (Hallucinated text, non-determinism, cost-driven sampling.)
 - How do you make sure a document deleted in SharePoint is gone from the index?
 - Why is embedding raw spreadsheet cells a mistake, and what do you do instead?
+
+---
+
+# Deep dive: how layout-model parsers work, with examples
+
+## A. Pipeline inside Docling / Marker / MinerU (pipeline mode)
+```
+PDF page ─► render to image (and read the text layer if present)
+         ─► Layout detection model (object detector, e.g. RT-DETR/DocLayout-YOLO trained on DocLayNet):
+              boxes labeled Title, Section-header, Text, List-item, Table, Picture, Caption, Formula, Page-header/footer
+         ─► For each box:
+              text box   → take text from the PDF text layer (born-digital) OR run OCR (scans)
+              table box  → table-structure model (e.g. TableFormer) predicts rows, cols, spans → HTML/Markdown
+              formula    → LaTeX recognizer (MinerU: UniMERNet-style)
+              picture    → crop + optional VLM caption
+         ─► Reading-order model / heuristics (columns, top-to-bottom, captions next to figures)
+         ─► Drop page headers and footers → emit DoclingDocument JSON / Markdown with hierarchy
+```
+**End-to-end VLM mode** replaces all of these steps with one model: `image → Markdown/HTML` (PaddleOCR-VL, MinerU2.5 1.2B VLM, olmOCR, general frontier VLMs).
+
+## B. Table serialization example
+Source table: "Plan | Monthly | Annual" with rows Basic $10/$100, Pro $25/$250.
+- **Markdown** (compact, LLM-friendly; loses merged cells):
+```
+| Plan  | Monthly | Annual |
+|-------|---------|--------|
+| Basic | $10     | $100   |
+| Pro   | $25     | $250   |
+```
+- **HTML** (keeps `rowspan`/`colspan` for complex tables, ~2× the tokens).
+- **Row-wise linearization** (good for embedding): `"Plan: Pro; Monthly: $25; Annual: $250"`. Each row is self-describing, so a chunk holding one row still keeps its column names.
+- **Summary for the embedding:** *"Pricing table: Basic and Pro plans, monthly vs. annual prices; Pro costs $25/month or $250/year."*
+
+## C. Parse-quality metrics
+- **Normalized edit distance (NED):** Levenshtein(pred, truth) / max(len). Example: truth "Net income 4.2M", pred "Net lncome 4.2M" → 1 edit / 15 chars = 0.067.
+- **TEDS (Tree-Edit-Distance-based Similarity)** for tables: `1 − TreeEditDistance(T_pred, T_true) / max(|T_pred|, |T_true|)` over the HTML trees. It captures structure errors (shifted cells), not just text errors.
+- **Reading-order accuracy:** the share of block pairs in the correct relative order.
+
+## D. Low-quality-page detector (route to a VLM)
+```python
+def needs_vlm(page_text, n_chars_expected):
+    bad = page_text.count("�") / max(1, len(page_text))      # replacement characters
+    density = len(page_text) / n_chars_expected                    # near 0 for scans without a text layer
+    oov = share_of_tokens_not_in_dictionary(page_text)
+    return bad > 0.01 or density < 0.2 or oov > 0.35
+```

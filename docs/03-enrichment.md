@@ -69,3 +69,40 @@ Return JSON: {"questions": [...]}
 - Why does embedding hypothetical questions work, in terms of the query/document distribution gap?
 - Which enrichments help BM25, which help dense retrieval, and which help both?
 - Why should ACLs be enforced as a pre-filter and never as a post-filter?
+
+---
+
+# Deep dive: what an enriched chunk record looks like
+
+```json
+{
+  "chunk_id": "hr-handbook:v12:0042",
+  "display_text": "Up to 5 unused PTO days roll over to the next calendar year. Rollover days expire on March 31.",
+  "embed_text": "HR Handbook > Time Off > 4.2 Carry-over\nThis chunk is from the 2026 US HR Handbook section on PTO carry-over rules, which applies to full-time US employees.\nUp to 5 unused PTO days roll over to the next calendar year. Rollover days expire on March 31.",
+  "bm25_text": "<embed_text> + keywords: PTO, paid time off, vacation, rollover, carry over, carryover",
+  "hypothetical_questions": [
+    "Can I carry over unused vacation days?",
+    "How many PTO days roll over?",
+    "When do rolled over PTO days expire?",
+    "Do I lose my paid time off at year end?"
+  ],
+  "metadata": {"doc_type": "policy", "region": "US", "audience": "employee",
+               "effective_date": "2026-01-01", "is_latest": true, "authority": "official",
+               "acl_groups": ["all-employees-us"], "entities": ["PTO"],
+               "enrichment_version": "ctx-v3+hq-v2", "enricher_model": "small-llm-2026-xx"}
+}
+```
+Each field has a job: `embed_text` goes to the dense index, `bm25_text` to the sparse index, the questions go to a separate question index pointing to `chunk_id`, `display_text` is what the LLM reads and the user sees cited, and the metadata drives filters and boosts.
+
+## Cost math for contextual retrieval (illustrative prices)
+Corpus: 10,000 documents × 8,000 tokens = 80M document tokens; ~20 chunks per document → 200k chunks.
+- Without caching: each chunk call re-sends the document → 200k × 8k = 1.6B input tokens.
+- With prompt caching: the document prefix is written once per document (80M tokens) and read from cache for the other 19 calls at a steep discount (cache reads are typically ~10% of the base price) → effective cost ≈ 80M + 1.52B × 0.1 ≈ 232M token-equivalents, about **7× cheaper**. Batch APIs cut it roughly in half again.
+- Output: 200k × 80 tokens = 16M output tokens.
+
+## Hypothetical-question index: how retrieval uses it
+```
+query ─► embed ─► search question-index (top 50) ─► map question→chunk_id ─► dedupe
+                └► search chunk-index (top 50)    ─┘                         ─► RRF ─► rerank
+```
+Query-to-question similarity is *symmetric* (question vs. question), and usually tighter than question-to-passage.
