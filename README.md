@@ -42,6 +42,7 @@ Most engineers can wire LangChain to a vector database. The top 0.1% can do the 
 | 17 | [Reading list & repos](docs/17-reading-list.md) | The papers and repos worth reading, ranked |
 | 18 | [Mastery quiz: questions](docs/18-quiz-questions.md) | About 130 questions (fundamentals → expert, with calculations and design scenarios) to test yourself |
 | 19 | [Mastery quiz: answers](docs/19-quiz-answers.md) | A worked answer key for every question |
+| 20 | [Advanced RAG catalog](docs/20-advanced-rag-catalog.md) | 46 advanced RAG methods (2020 → Nov 2026), each explained with a runnable implementation in [`examples/advanced_rag/`](examples/advanced_rag/) |
 
 ### Suggested pace
 
@@ -92,6 +93,7 @@ Each module ends with **"Expert checks"** and a **"Deep dive"** section: interna
 | 13 | `guard/` | PII / secret redaction, prompt-injection detection (direct + retrieved chunks), input / output guards, groundedness, exfiltration-safe markdown, ACL matrix, poisoning scan |
 | 14 | `obs/`, `ops/` | Redacted tracing + replay, metrics + cost, permission-scoped semantic cache, rate limits / budgets, feedback → golden candidates, freshness SLO |
 | 16 | `config.py`, `build.py`, `api/`, `cli.py`, `configs/`, CI | Config-driven assembly, FastAPI service, CLI, Docker, GitHub Actions with the eval gate |
+| 20 | `examples/advanced_rag/` | One self-contained, offline-runnable file per advanced RAG method (HyDE, RAG-Fusion, IRCoT, FLARE, Self-RAG, CRAG, GraphRAG, LightRAG, HippoRAG 2, Search-R1, ColPali, ...) |
 
 ### Quick start
 
